@@ -2,8 +2,8 @@ import discord
 import json
 import os
 import re
-import iidx  # 自作パッケージ
-
+import feature.iidx as iidx  # 自作パッケージ
+from server import server_thread
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
@@ -40,6 +40,9 @@ async def on_message(message):
     # 「/neko」と発言したら「にゃーん」が返る処理
     if message.content == '/neko':
         await message.channel.send('にゃーん')
+
+# Koyeb用 サーバー立ち上げ
+server_thread()
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
