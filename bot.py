@@ -4,6 +4,9 @@ import os
 import re
 import feature.iidx as iidx  # 自作パッケージ
 from server import server_thread
+import dotenv
+
+dotenv.load_dotenv()
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
