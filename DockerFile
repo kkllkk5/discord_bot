@@ -19,4 +19,4 @@ COPY . /bot
 EXPOSE 8080
 
 # 実行
-CMD python bot.py
+CMD sh run_all.sh
