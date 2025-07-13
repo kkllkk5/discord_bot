@@ -37,9 +37,6 @@ async def on_message(message):
         except Exception as e:
             response = "レベルには11,12のみを現在サポートしています"
         await message.channel.send(response)
-    # 「/neko」と発言したら「にゃーん」が返る処理
-    if message.content == '/neko':
-        await message.channel.send('にゃーん')
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
