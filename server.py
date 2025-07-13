@@ -23,9 +23,11 @@ def start():
     asyncio.set_event_loop(asyncio.new_event_loop())
     uvicorn.run(app, host="0.0.0.0", port=port)
 
+#sleep対策用定期実行health check
 def health_check():
-    print(requests.get('http://0.0.0.0:'+str(port)).status_code)
     return requests.get('http://0.0.0.0:'+str(port)).status_code
+
+schedule.every(1).minutes.do(health_check)
 
 def server_thread():
     t = Thread(target=start)
@@ -33,8 +35,6 @@ def server_thread():
     while True:
         schedule.run_pending()  # 3. 指定時間が来てたら実行、まだなら何もしない
         time.sleep(1)  # 待ち
-
-schedule.every(1).minutes.do(health_check)
 
 if __name__ == '__main__':
     server_thread()
