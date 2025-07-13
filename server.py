@@ -13,6 +13,7 @@ dotenv.load_dotenv()
 
 app = FastAPI()
 port = int(os.environ.get("PORT", 8080))
+HEALTH_CHECK_URL = os.environ.get("HEALTH_CHECK_URL","http://0.0.0.0:"+str(port))
 
 @app.get("/")
 async def root():
@@ -25,7 +26,7 @@ def start():
 
 #sleep対策用定期実行health check
 def health_check():
-    return requests.get('http://0.0.0.0:'+str(port)).status_code
+    return requests.get(HEALTH_CHECK_URL).status_code
 
 schedule.every(1).minutes.do(health_check)
 
