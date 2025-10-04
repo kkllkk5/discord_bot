@@ -9,13 +9,14 @@ token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
 client = discord.Client()
 
+# 「歩数」チャンネル
+STEPS_CHANNNEL_ID = "1423994718743957515"
+
 # 起動時に動作する処理
 
 
 @client.event
 async def on_ready():
-    # 起動したらターミナルにログイン通知が表示される
-    print('ログインしました')
 
 # メッセージ受信時に動作する処理
 
@@ -35,8 +36,14 @@ async def on_message(message):
             for music in practice_music_list:
                 response += (music)
         except Exception as e:
-            response = "レベルには11,12のみを現在サポートしています"
+            response = "レベルは11,12のみを現在サポートしています"
         await message.channel.send(response)
+
+    # 「歩数」チャンネルにショートカット経由での投稿があった場合，そのメッセージを元に集計する
+    if message.channel.id == STEPS_CHANNNEL_ID:
+        steps = int(message.content)
+
+
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
