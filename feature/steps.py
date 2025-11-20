@@ -1,19 +1,25 @@
-import json
-DATA_FILE = "steps_7days.json"
 
-# JSONロード/セーブ
-def load_data():
-    try:
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    except:
-        return {}
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+# 「歩数集計用」チャンネル
+STEPS_FOR_SUMMARY_CHANEL_ID = "1423994718743957515"
+channel = client.get_channel(STEPS_FOR_SUMMARY_CHANNEL_ID)
 
-# 歩数を集計
-def summarize_steps(steps: int):
-    
+# 直近の歩数平均を集計
+def get_ave_recent_steps():
+    # デフォルト:7日間（メッセージ7件）
+    DAYS = 7
+    sum_steps = 0
+
+    msg_list = channel.history(limit = DAYS)
+    # 「歩数集計用」
+    for msg in msg_list:
+        try:
+            sum_steps += int(msg)
+        except Exception as e:
+            raise e
+    return sum_steps/len(msg_list)
+
+# 当日の歩数を取得
+def get_today_steps():
+    return channel.history(limit = 1)
 
