@@ -37,6 +37,7 @@ def search_songname_for_dp(name_parts):
     music_list = csvToList('dp_level.csv')
     for music_info in music_list:
         music_name = music_info[0]
+        music_level = music_info[1]
         if re.match('.*' + name_parts + '.*',music_name):
-            candidate_list.append(music_name)
+            candidate_list.append([music_name,music_level])
     return candidate_list
