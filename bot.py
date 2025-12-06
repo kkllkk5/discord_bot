@@ -75,8 +75,8 @@ async def on_message(message):
                 while(True):
                     msg = await client.wait_for('message', check=check)
                     target_num = int(msg.content) - 1 
-                    # 番号が不正(0やマイナスだったり，想定よりも大きな数)だった場合，送信し直してもらう
-                    if target_num <= 0 or target_num >= len(candidate_list):
+                    # 番号が不正(マイナスだったり，想定よりも大きな数)だった場合，送信し直してもらう
+                    if target_num < 0 or target_num >= len(candidate_list):
                         await message.channel.send("対象の楽曲を番号で正しく指定してください.")
                         continue
                     else:
