@@ -3,19 +3,37 @@ import json
 import os
 import re
 import feature.iidx as iidx  # 自作パッケージ
+import feature.tech as tech  # 自作パッケージ
 from server import server_thread
+from datetime import time
+import datetime
+from discord.ext import tasks
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
-client = discord.Client()
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
+
+
+# スケジューリングタスク
+# 技術記事チャンネルのID
+TECH_TREND_CHANNEL_ID = 1493961159148310578
+@tasks.loop(time=time(hour=8))  # 毎日午前8時に実行
+async def scheduled_task():
+    today = datetime.datetime.now().day
+    if (today % 2) == 0:  # 偶数日なら実行
+        message = tech.fetch_trending_qiita()
+        channel = client.get_channel(TECH_TREND_CHANNEL_ID)
+        await channel.send(message)
 
 # 起動時に動作する処理
-
-
 @client.event
 async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
     print('ログインしました')
+    # スケジューリングをセット
+    scheduled_task.start()
 
 # メッセージ受信時に動作する処理
 
@@ -35,6 +53,11 @@ async def on_message(message):
                 response += (music[0])
         except Exception as e:
             response = "レベルには11,12のみを現在サポートしています"
+        await message.channel.send(response)
+
+    # 「/tech_trend」と送ると，急上昇Qiita記事を答える（手動取得用）
+    if re.match('/tech_trend', message.content):
+        response = tech.fetch_trending_qiita()
         await message.channel.send(response)
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
@@ -87,7 +110,6 @@ async def on_message(message):
                 await message.channel.send("対象の楽曲を番号で指定してください.")
             except Exception as e:
                 await message.channel.send("不明なエラーが発生しました.")
-
 
 
 # Botの起動とDiscordサーバーへの接続
