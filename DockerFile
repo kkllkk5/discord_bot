@@ -1,22 +1,26 @@
-FROM python:3.11
+FROM python:3.11-slim
+
 WORKDIR /bot
 
-# 更新・日本語化
-RUN apt-get update && apt-get -y install locales && apt-get -y upgrade && \
-	localedef -f UTF-8 -i ja_JP ja_JP.UTF-8
-ENV LANG ja_JP.UTF-8
-ENV LANGUAGE ja_JP:ja
-ENV LC_ALL ja_JP.UTF-8
-ENV TZ Asia/Tokyo
-ENV TERM xterm
+# 必要最低限だけインストール
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends locales && \
+    localedef -f UTF-8 -i ja_JP ja_JP.UTF-8 && \
+    rm -rf /var/lib/apt/lists/*
 
-# pip install
-COPY requirements.txt /bot/
-RUN pip install -r requirements.txt
-COPY . /bot
+ENV LANG=ja_JP.UTF-8
+ENV LANGUAGE=ja_JP:ja
+ENV LC_ALL=ja_JP.UTF-8
+ENV TZ=Asia/Tokyo
 
-# ポート開放 (uvicornで指定したポート)
+# 先にrequirementsだけコピー（キャッシュ効く）
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 必要なものだけコピー（後述）
+COPY . .
+
 EXPOSE 8080
 
-# 実行
-CMD sh run_all.sh
+CMD ["sh", "run_all.sh"]
