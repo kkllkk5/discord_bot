@@ -5,7 +5,7 @@ import json
 import feedparser
 import sys
 import datetime
-from models.article import Article
+from feature.models.article import Article
 from dateutil import parser
 
 
@@ -84,9 +84,17 @@ def summarize_article(article: Article) -> str:
 
 
 if __name__ == "__main__":
+    main()
+
+def main():
+    response = "技術ニュースをお知らせします!\n"
+    count = 1
     for source_name, url in RSS_FEEDS.items():
         articles = fetch_rss_feed(source_name, url)
         #print(f"Fetched {len(articles)} articles from {source_name}")
         recent_articles = filter_recent_articles(articles)
         for article in recent_articles:
-            print(summarize_article(article))
+            response += f"{count}. {summarize_article(article)}\n"
+            count += 1
+
+    return response

@@ -4,6 +4,8 @@ import os
 import re
 import feature.iidx as iidx  # 自作パッケージ
 import feature.tech as tech  # 自作パッケージ
+import feature.news as news  # 自作パッケージ
+from zoneinfo import ZoneInfo
 from server import server_thread
 from datetime import time
 import datetime
@@ -17,15 +19,24 @@ client = discord.Client(intents=intents)
 
 
 # スケジューリングタスク
-# 技術記事チャンネルのID
-TECH_TREND_CHANNEL_ID = 1493961159148310578
-@tasks.loop(time=time(hour=8))  # 毎日午前8時に実行
-async def scheduled_task():
+TECH_TREND_CHANNEL_ID = 1493961159148310578 # 技術記事チャンネルのID
+TECH_NEWS_CHANNEL_ID = 1515350526718378034 # 技術ニュースチャンネルのID
+
+# 技術記事の取得を毎日午前8時に実行
+@tasks.loop(time=time(hour=8,tzinfo=ZoneInfo("Asia/Tokyo")))  
+async def scheduled_tech_trend_task():
     today = datetime.datetime.now().day
     if (today % 2) == 0:  # 偶数日なら実行
         message = tech.fetch_trending_qiita()
         channel = client.get_channel(TECH_TREND_CHANNEL_ID)
         await channel.send(message)
+
+# 技術ニュースの取得を毎日午前8時に実行
+@tasks.loop(time=time(hour=8,tzinfo=ZoneInfo("Asia/Tokyo")))  
+async def scheduled_tech_news_task():
+    message = news.main()
+    channel = client.get_channel(TECH_NEWS_CHANNEL_ID)
+    await channel.send(message)
 
 # 起動時に動作する処理
 @client.event
@@ -33,7 +44,8 @@ async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
     print('ログインしました')
     # スケジューリングをセット
-    scheduled_task.start()
+    scheduled_tech_trend_task.start()
+    scheduled_tech_news_task.start()
 
 # メッセージ受信時に動作する処理
 
@@ -58,6 +70,11 @@ async def on_message(message):
     # 「/tech_trend」と送ると，急上昇Qiita記事を答える（手動取得用）
     if re.match('/tech_trend', message.content):
         response = tech.fetch_trending_qiita()
+        await message.channel.send(response)
+    
+    # 「/tech_news」と送ると，最新の技術記事を答える
+    if re.match('/tech_news', message.content):
+        response = news.main()
         await message.channel.send(response)
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
