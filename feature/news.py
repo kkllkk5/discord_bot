@@ -6,7 +6,9 @@ import feedparser
 import sys
 import datetime
 from feature.models.article import Article
+from feature.models.hacker_article import HackerArticle
 from dateutil import parser
+import requests
 
 
 client = genai.Client(api_key=os.getenv("GENAI_API_KEY"))
@@ -32,6 +34,42 @@ RSS_FEEDS = {
 
 }
 
+MIN_LIKES = 5
+MIN_COMMENTS = 3
+
+
+HACKER_NEWS_BASE_URL = "https://hacker-news.firebaseio.com/v0"
+
+# Hacker Newsの新着記事をlimitの件数取得する関数
+def get_new_hacker_news_articles(limit=100) -> list[HackerArticle]:
+    try:
+        # 公式APIから取得
+        response = requests.get(f"{HACKER_NEWS_BASE_URL}/newstories.json")
+        response.raise_for_status()
+        story_ids = response.json()[:limit]
+        articles = []
+
+        # IDリストから各記事の詳細を取得
+        for story_id in story_ids:
+            story_response = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json")
+            story_response.raise_for_status()
+            story_data = story_response.json()
+
+            if ('title' in story_data) and ('url' in story_data) and ('time' in story_data):
+                articles.append(HackerArticle(
+                    title=story_data['title'],
+                    score=story_data.get('score', 0),
+                    descendants=story_data.get('descendants', 0),
+                ))
+
+        return articles
+    except Exception as e:
+        print(f"Error fetching Hacker News articles: {e}")
+        return []
+
+def is_interested(article: HackerArticle) -> bool:
+    # スコアが5以上、またはコメント数が3以上の記事を興味深いと判断
+    return article.score >= MIN_LIKES or article.descendants >= MIN_COMMENTS
 
 # RSSフィードから記事を全件取得する関数
 def fetch_rss_feed(source_name:str,url:str) -> list[Article]:
@@ -87,6 +125,7 @@ if __name__ == "__main__":
     main()
 
 def main():
+    """
     response = "技術ニュースをお知らせします!\n"
     count = 1
     for source_name, url in RSS_FEEDS.items():
@@ -97,4 +136,19 @@ def main():
             response += f"{count}. {summarize_article(article)}\n"
             count += 1
 
+    return response
+    """
+    # Hacker Newsの新着記事を取得
+    hacker_articles = get_new_hacker_news_articles()
+    # 興味深い記事のみをフィルタリング
+    interested_articles = [article for article in hacker_articles if is_interested(article)]
+    
+    response = ""
+    # 結果を表示
+    if interested_articles:
+        response += "興味深いHacker Newsの記事:\n"
+        for article in interested_articles:
+            response += f"タイトル: {article.title}, スコア: {article.score}, コメント数: {article.descendants}\n"
+    else:
+        response += "興味深いHacker Newsの記事は見つかりませんでした。"
     return response

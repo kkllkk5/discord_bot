@@ -73,7 +73,7 @@ async def on_message(message):
         await message.channel.send(response)
     
     # 「/tech_news」と送ると，最新の技術記事を答える
-    if re.match('/tech_news', message.content):
+    if re.match('/tech_new2', message.content):
         response = news.main()
         await message.channel.send(response)
 
