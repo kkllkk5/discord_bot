@@ -23,6 +23,7 @@ client = discord.Client(intents=intents)
 TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
 TECH_NEWS_CHANNEL_ID = 1515350526718378034  # 技術ニュースチャンネルのID
 
+MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645] # 食事の写真解析を許可するチャンネルのID
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     channel = client.get_channel(channel_id)
@@ -92,7 +93,7 @@ async def on_message(message):
     # 食事の写真を送ると，内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
     # 食事の写真の可能性が80%以下の場合は，何も応答しない
-    if message.attachments:
+    if message.attachments and (message.channel.id in MEAL_ANALYZE_CHANNEL_ID):
         images = []
         for attachment in message.attachments:
             # 添付ファイルが画像かどうかを判定
