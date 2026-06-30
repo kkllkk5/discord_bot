@@ -100,11 +100,13 @@ async def on_message(message):
         await message.channel.send(response)
 
     # 「/tech_news」と送ると，最新の技術記事を答える
-    if re.match('/tech_new2', message.content):
+    '''
+    if re.match('/tech_news', message.content):
         response = news.main()
         await message.channel.send(response)
+    '''
     
-    # 食事の写真を送ると，内容をAIが解析
+    # 食事の写真を送ると,内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
     # 食事の写真の可能性が80%以下の場合は，何も応答しない
     if message.attachments and (message.channel.id in MEAL_ANALYZE_CHANNEL_ID):
