@@ -10,22 +10,13 @@ from zoneinfo import ZoneInfo
 from datetime import time
 import datetime
 from discord.ext import tasks
-from fastapi import FastAPI
-import uvicorn
-import asyncio
+from server import server_thread
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-
-
-# ヘルスチェック用
-app = FastAPI()
-@app.get("/")
-def health():
-    return {"status": "ok"}
 
 
 # スケジューリングタスク
@@ -179,17 +170,8 @@ async def on_message(message):
                 await message.channel.send("不明なエラーが発生しました.")
 
 
-# Botの起動とDiscordサーバーへの接続・ヘルスチェック
-async def main():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8080)
-    server = uvicorn.Server(config)
-
-    await client.login(token)
-
-    await asyncio.gather(
-        server.serve(),
-        client.connect(reconnect=True)
-    )
-
+# Botの起動
 if __name__ == "__main__":
-    asyncio.run(main())
+    if token is None:
+        raise RuntimeError('TOKEN environment variable is not set')
+    client.run(token)
