@@ -90,20 +90,23 @@ async def on_message(message):
         await message.channel.send(response)
     
     # 食事の写真を送ると，内容をAIが解析
+    # 複数送った場合は，まとめて解析してくれる
+    # 食事の写真の可能性が80%以下の場合は，何も応答しない
     if message.attachments:
+        images = []
         for attachment in message.attachments:
             # 添付ファイルが画像かどうかを判定
             if attachment.content_type and attachment.content_type.startswith("image"):
                 print("画像を受け取りました")
                 # 中身をバイト列として取得
                 image_bytes = await attachment.read()
+                images.append((image_bytes, attachment.content_type))
 
-                response_text = meal_analyze.analyze_meal_image(
-                    image_bytes,
-                    attachment.content_type,
-                )
-                if (response_text != None) and (response_text != ""):
-                    await message.channel.send(response_text)
+        response_text = meal_analyze.analyze_meal_images(images)
+        if (response_text != None) and (response_text != ""):
+            await message.channel.send(response_text)
+        else:
+            print("食事の画像ではないと判断されたため，解析はスキップされました．")
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する
