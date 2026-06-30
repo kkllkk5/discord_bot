@@ -11,7 +11,7 @@ from dateutil import parser
 import requests
 
 
-client = genai.Client(api_key=os.getenv("GENAI_API_KEY"))
+client = None
 config = types.GenerateContentConfig(
     response_mime_type="application/json",
     response_schema={
@@ -22,6 +22,18 @@ config = types.GenerateContentConfig(
         "required": ["summary"]
     }
 )
+
+
+def get_client():
+    global client
+    if client is None:
+        api_key = os.getenv("GENAI_API_KEY")
+        if api_key is None:
+            raise RuntimeError("GENAI_API_KEY environment variable is not set")
+        client = genai.Client(api_key=api_key)
+    return client
+
+
 # RSS指定先のURL
 RSS_FEEDS = {
     "GitHub Blog": "https://github.blog/feed/",
@@ -110,7 +122,7 @@ def filter_recent_articles(articles: list[Article], hours: int=24) -> list[Artic
 # 記事の要約を生成する関数（gemini APIにより自動で要約,日本語へと翻訳）
 # 現状は記事データの要約をそのまま使用，日本語化のみ投げる
 def summarize_article(article: Article) -> str:
-    response_json = client.models.generate_content(
+    response_json = get_client().models.generate_content(
         model="gemini-3.5-flash",
         config=config,
         contents="以下の記事の要約を日本語化してください: " + article.summary

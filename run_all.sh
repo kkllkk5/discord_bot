@@ -1,6 +1,6 @@
 # 両方をバックグラウンドで起動しつつ監視
 
 python server.py &
-python bot.py
+python main.py
 
-# discord_bot.py を終了させたらコンテナも終了
+# main.py を終了させたらコンテナも終了
