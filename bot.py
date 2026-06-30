@@ -5,6 +5,7 @@ import re
 import feature.iidx as iidx  # 自作パッケージ
 import feature.tech as tech  # 自作パッケージ
 import feature.news as news  # 自作パッケージ
+import feature.meal_analyze as meal_analyze  # 自作パッケージ
 from zoneinfo import ZoneInfo
 from server import server_thread
 from datetime import time
@@ -19,35 +20,46 @@ client = discord.Client(intents=intents)
 
 
 # スケジューリングタスク
-TECH_TREND_CHANNEL_ID = 1493961159148310578 # 技術記事チャンネルのID
-TECH_NEWS_CHANNEL_ID = 1515350526718378034 # 技術ニュースチャンネルのID
+TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
+TECH_NEWS_CHANNEL_ID = 1515350526718378034  # 技術ニュースチャンネルのID
+
+
+async def send_scheduled_message(channel_id: int, message: str) -> None:
+    channel = client.get_channel(channel_id)
+    if isinstance(channel, discord.abc.Messageable):
+        await channel.send(message)
 
 # 技術記事の取得を毎日午前8時に実行
-@tasks.loop(time=time(hour=8,tzinfo=ZoneInfo("Asia/Tokyo")))  
+
+
+@tasks.loop(time=time(hour=8, tzinfo=ZoneInfo("Asia/Tokyo")))
 async def scheduled_tech_trend_task():
     today = datetime.datetime.now().day
     if (today % 2) == 0:  # 偶数日なら実行
         message = tech.fetch_trending_qiita()
-        channel = client.get_channel(TECH_TREND_CHANNEL_ID)
-        await channel.send(message)
+        await send_scheduled_message(TECH_TREND_CHANNEL_ID, message)
 
 # 技術ニュースの取得を毎日午前8時に実行
-@tasks.loop(time=time(hour=8,tzinfo=ZoneInfo("Asia/Tokyo")))  
+
+'''
+@tasks.loop(time=time(hour=8, tzinfo=ZoneInfo("Asia/Tokyo")))
 async def scheduled_tech_news_task():
     message = news.main()
-    channel = client.get_channel(TECH_NEWS_CHANNEL_ID)
-    await channel.send(message)
-
+    await send_scheduled_message(TECH_NEWS_CHANNEL_ID, message)
+'''
 # 起動時に動作する処理
+
+
 @client.event
 async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
     print('ログインしました')
     # スケジューリングをセット
     scheduled_tech_trend_task.start()
-    scheduled_tech_news_task.start()
+    # scheduled_tech_news_task.start()
 
 # メッセージ受信時に動作する処理
+
 
 @client.event
 async def on_message(message):
@@ -71,15 +83,31 @@ async def on_message(message):
     if re.match('/tech_trend', message.content):
         response = tech.fetch_trending_qiita()
         await message.channel.send(response)
-    
+
     # 「/tech_news」と送ると，最新の技術記事を答える
     if re.match('/tech_new2', message.content):
         response = news.main()
         await message.channel.send(response)
+    
+    # 食事の写真を送ると，内容をAIが解析
+    if message.attachments:
+        for attachment in message.attachments:
+            # 添付ファイルが画像かどうかを判定
+            if attachment.content_type and attachment.content_type.startswith("image"):
+                print("画像を受け取りました")
+                # 中身をバイト列として取得
+                image_bytes = await attachment.read()
+
+                response_text = meal_analyze.analyze_meal_image(
+                    image_bytes,
+                    attachment.content_type,
+                )
+                if (response_text != None) and (response_text != ""):
+                    await message.channel.send(response_text)
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する
-    if re.match('/dp_level .*',message.content):
+    if re.match('/dp_level .*', message.content):
         _, song_name = message.content.split()
 
         # 指定した曲名の一部が1文字だった場合は検索しない
@@ -93,14 +121,15 @@ async def on_message(message):
             await message.channel.send(response)
         # 楽曲の候補が一つしかなかった場合は，その楽曲の難易度を送信する
         elif len(candidate_list) == 1:
-            response = candidate_list[0][0] + "のDP非公式難易度は" + str.strip(candidate_list[0][1]) + "です."
+            response = candidate_list[0][0] + "のDP非公式難易度は" + \
+                str.strip(candidate_list[0][1]) + "です."
             await message.channel.send(response)
         else:
 
             response = "以下の楽曲が候補です．対象の楽曲を番号で指定してください．\n"
 
             # 番号（1から順番に振る）と曲名を一覧で送信する
-            for i,(music_name,_) in enumerate(candidate_list):
+            for i, (music_name, _) in enumerate(candidate_list):
                 response += "[" + str(i+1) + "]:" + music_name + "\n"
 
             await message.channel.send(response)
@@ -112,15 +141,16 @@ async def on_message(message):
                 return m.content.isdigit() and m.channel == message.channel
 
             try:
-                while(True):
+                while (True):
                     msg = await client.wait_for('message', check=check)
-                    target_num = int(msg.content) - 1 
+                    target_num = int(msg.content) - 1
                     # 番号が不正(マイナスだったり，想定よりも大きな数)だった場合，送信し直してもらう
                     if target_num < 0 or target_num >= len(candidate_list):
                         await message.channel.send("対象の楽曲を番号で正しく指定してください.")
                         continue
                     else:
-                        response = candidate_list[target_num][0] + "のDP非公式難易度は" + str.strip(candidate_list[target_num][1]) + "です."
+                        response = candidate_list[target_num][0] + "のDP非公式難易度は" + str.strip(
+                            candidate_list[target_num][1]) + "です."
                         await message.channel.send(response)
                         break
             except ValueError as e:
@@ -130,4 +160,7 @@ async def on_message(message):
 
 
 # Botの起動とDiscordサーバーへの接続
-client.run(token)
+if __name__ == "__main__":
+    if token is None:
+        raise RuntimeError('TOKEN environment variable is not set')
+    client.run(token)
