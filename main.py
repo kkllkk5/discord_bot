@@ -184,9 +184,11 @@ async def main():
     config = uvicorn.Config(app, host="0.0.0.0", port=8080)
     server = uvicorn.Server(config)
 
+    await client.login(token)
+
     await asyncio.gather(
         server.serve(),
-        client.start(token)
+        client.connect(reconnect=True)
     )
 
 if __name__ == "__main__":
