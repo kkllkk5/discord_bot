@@ -34,8 +34,16 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
             config=config,
         )
     except Exception as e:
-        print(f"Error analyzing meal image: {e}")
-        return "Error:画像解析に失敗しました.時間をおいて試して下さい．"
+        # 失敗した場合は下位モデルでも試す
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config=config,
+            )
+        except Exception as e2:
+            print(f"Error analyzing meal image: {e2}")
+            return "Error:利用制限に達した可能性があります.時間をおいて試して下さい．"
 
     return response.text
 

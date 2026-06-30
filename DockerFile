@@ -23,4 +23,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "run_all.sh"]
+CMD ["python", "main.py"]

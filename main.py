@@ -7,10 +7,12 @@ import feature.tech as tech  # 自作パッケージ
 import feature.news as news  # 自作パッケージ
 import feature.meal_analyze as meal_analyze  # 自作パッケージ
 from zoneinfo import ZoneInfo
-from server import server_thread
 from datetime import time
 import datetime
 from discord.ext import tasks
+from fastapi import FastAPI
+import uvicorn
+import asyncio
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
@@ -19,11 +21,18 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 
+# ヘルスチェック用
+app = FastAPI()
+@app.get("/")
+def health():
+    return {"status": "ok"}
+
+
 # スケジューリングタスク
 TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
 TECH_NEWS_CHANNEL_ID = 1515350526718378034  # 技術ニュースチャンネルのID
 
-MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645] # 食事の写真解析を許可するチャンネルのID
+MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645,1366375555016032336] # 食事の写真解析を許可するチャンネルのID
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     channel = client.get_channel(channel_id)
@@ -163,8 +172,15 @@ async def on_message(message):
                 await message.channel.send("不明なエラーが発生しました.")
 
 
-# Botの起動とDiscordサーバーへの接続
+# Botの起動とDiscordサーバーへの接続・ヘルスチェック
+async def main():
+    config = uvicorn.Config(app, host="0.0.0.0", port=8080)
+    server = uvicorn.Server(config)
+
+    await asyncio.gather(
+        server.serve(),
+        client.start(token)
+    )
+
 if __name__ == "__main__":
-    if token is None:
-        raise RuntimeError('TOKEN environment variable is not set')
-    client.run(token)
+    asyncio.run(main())
