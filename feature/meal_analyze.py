@@ -1,12 +1,16 @@
 from google import genai
 from google.genai import types
 import os
+import logging
 
 client = None
 config = types.GenerateContentConfig(
     response_mime_type="text/plain",
 )
 
+# ログの設定
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger("discord.client")
 
 def get_client():
     global client
@@ -60,7 +64,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
             config=config,
         )
     except Exception as e:
-        print(f"Error analyzing meal image(3.5-flash): {e}")
+        logger.error(f"Error analyzing meal image(3.5-flash): {e}")
         # 失敗した場合は下位モデルでも試す
         try:
             response = get_client().models.generate_content(
@@ -69,7 +73,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
                 config=config,
             )
         except Exception as e2:
-            print(f"Error analyzing meal image(2.5-flash): {e2}")
+            logger.error(f"Error analyzing meal image(2.5-flash): {e2}")
             return "いっぱい送ってくれてありがとうね!今日はもう遅いから寝るわよ!"
 
     return response.text

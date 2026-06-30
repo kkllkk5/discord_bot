@@ -11,12 +11,17 @@ from datetime import time
 import datetime
 from discord.ext import tasks
 from server import server_thread
+import logging
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+
+# ログの設定
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("discord.client")
 
 
 # スケジューリングタスク
@@ -55,7 +60,7 @@ async def scheduled_tech_news_task():
 @client.event
 async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
-    print('ログインしました')
+    logger.info('ログインしました')
     # スケジューリングをセット
     scheduled_tech_trend_task.start()
     # scheduled_tech_news_task.start()
@@ -105,7 +110,7 @@ async def on_message(message):
         for attachment in message.attachments:
             # 添付ファイルが画像かどうかを判定
             if attachment.content_type and attachment.content_type.startswith("image"):
-                print("画像を受け取りました")
+                logger.info("画像を受け取りました")
                 # 中身をバイト列として取得
                 image_bytes = await attachment.read()
                 images.append((image_bytes, attachment.content_type))
@@ -114,7 +119,7 @@ async def on_message(message):
         if (response_text != None) and (response_text != ""):
             await message.channel.send(response_text)
         else:
-            print("食事の画像ではないと判断されたため，解析はスキップされました．")
+            logger.info("食事の画像ではないと判断されたため，解析はスキップされました．")
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する
