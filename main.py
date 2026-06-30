@@ -33,6 +33,7 @@ TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
 TECH_NEWS_CHANNEL_ID = 1515350526718378034  # 技術ニュースチャンネルのID
 
 MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645,1366375555016032336] # 食事の写真解析を許可するチャンネルのID
+DEBUG_CHANNNEL_ID = 1521351966415130645 # デバッグ用のチャンネル
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     channel = client.get_channel(channel_id)
@@ -75,6 +76,10 @@ async def on_ready():
 async def on_message(message):
     # メッセージ送信者がBotだった場合は無視する
     if message.author.bot:
+        return
+    
+    # デバッグモード（ローカル起動）の場合は，テスト用チャンネル以外のメッセージを無視する
+    if (os.getenv("DEBUG_MODE") == "1") and not (message.channel.id == DEBUG_CHANNNEL_ID):
         return
     # 「/iidx {レベル} {課題曲数}」と送るとiidxの課題曲をランダムで作成
     if re.match('/iidx [0-9]+ [0-9]+', message.content):
