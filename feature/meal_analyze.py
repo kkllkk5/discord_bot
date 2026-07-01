@@ -1,16 +1,12 @@
 from google import genai
 from google.genai import types
 import os
-import logging
 
 client = None
 config = types.GenerateContentConfig(
     response_mime_type="text/plain",
 )
 
-# ログの設定
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger("discord.client")
 
 def get_client():
     global client
@@ -44,7 +40,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
     1. 【フィルタリング】画像ごとに「食事の写真である可能性」を評価し、80%以下の画像は完全に無視してください。
     2. 【例外処理】すべての画像が80%以下だった場合は、何も出力せず「空文字列（""）」を返してください。
     3. 【トーン】返答内で「確率（80%など）」について直接言及する必要はありません。
-    4. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素」、そしてそれが「アイドルの食べ物として相応しいかどうか」の判定を含めてください。全体的に内容は簡潔にまとめて下さい．
+    4. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素」、そしてそれが「アイドルの食べ物として相応しいかどうか（厳しめにお願いします）」の判定を含めてください。全体的に内容は簡潔にまとめて下さい.
     5. 【構成】複数の画像に食事が写っている場合は、画像ごとにセクションを分けて、簡潔に出力してください。
 
     # 出力フォーマット（食べ物ごとの記述例）
@@ -59,22 +55,31 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
 
     try:
         response = get_client().models.generate_content(
+                model="gemini-3.1-flash-lite",
+                contents=contents,
+                config=config,
+            )
+    except Exception as e:
+        print(f"Error analyzing meal image(3.1-flash-lite): {e}")
+        # 失敗した場合は別のモデルでも試す
+        try:
+            response = get_client().models.generate_content(
             model="gemini-3.5-flash",
             contents=contents,
             config=config,
         )
-    except Exception as e:
-        logger.error(f"Error analyzing meal image(3.5-flash): {e}")
-        # 失敗した場合は下位モデルでも試す
-        try:
-            response = get_client().models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents,
-                config=config,
-            )
         except Exception as e2:
-            logger.error(f"Error analyzing meal image(2.5-flash): {e2}")
-            return "いっぱい送ってくれてありがとうね!今日はもう遅いから寝るわよ!"
+            print(f"Error analyzing meal image(3.5-flash): {e2}")
+            # 失敗した場合は下位モデルでも試す
+            try:
+                response = get_client().models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config=config,
+                )
+            except Exception as e3:
+                print(f"Error analyzing meal image(2.5-flash): {e3}")
+                return "いっぱい送ってくれてありがとうね!今日はもう遅いから寝るわよ!"
 
     return response.text
 
