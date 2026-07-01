@@ -73,6 +73,10 @@ async def on_message(message):
     # メッセージ送信者がBotだった場合は無視する
     if message.author.bot:
         return
+
+    # 本番起動の場合は，デバッグ用チャンネルの投稿は無視する
+    if (os.getenv("DEBUG_MODE") == "0") and (message.channel.id == DEBUG_CHANNNEL_ID):
+        return
     
     # デバッグモード（ローカル起動）の場合は，テスト用チャンネル以外のメッセージを無視する
     if (os.getenv("DEBUG_MODE") == "1") and not (message.channel.id == DEBUG_CHANNNEL_ID):
