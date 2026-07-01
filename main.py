@@ -121,7 +121,7 @@ async def on_message(message):
 
         response_text = meal_analyze.analyze_meal_images(images)
         if (response_text != None) and (response_text != ""):
-            await message.channel.send(response_text)
+            await message.reply(response_text)
         else:
             logger.info("食事の画像ではないと判断されたため，解析はスキップされました．")
 
