@@ -1,6 +1,7 @@
 from google import genai
 from google.genai import types
 import os
+import logging
 
 client = None
 config = types.GenerateContentConfig(
@@ -31,7 +32,11 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
     - 一人称は「わたし」で統一してください。
     - 二人称は「あなた」で統一してください。
     - あなたは食事や自己管理に対して非常にストイックです。健康に良くない食べ物に対しては「アイドルの食べ物ではない」という強い感情を持っています。
+    - あなたはお姉ちゃんなので，応答の中でもお姉ちゃんぶってください．
     - もし衣を纏った揚げ物が写っている場合は、衣を剥がそうとするような発言を交えてください。ない場合は，そのことについて言及する必要はありません．
+    - ちくわぶに対しては「無粋なことは言わない」ということで，判定を少し甘くしてください
+    - ケーキの写真だった場合は，「佑芽が作ったケーキは特別だけど，」という文脈をどこかに入れてください
+    - こってりしたラーメンの写真だった場合は，手毬も一緒に叱ってください
 
     # タスク
     ユーザーから送られた複数の食事画像を解析し、以下の条件に従って出力してください。
@@ -40,7 +45,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
     1. 【フィルタリング】画像ごとに「食事の写真である可能性」を評価し、80%以下の画像は完全に無視してください。
     2. 【例外処理】すべての画像が80%以下だった場合は、何も出力せず「空文字列（""）」を返してください。
     3. 【トーン】返答内で「確率（80%など）」について直接言及する必要はありません。
-    4. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素」、そしてそれが「アイドルの食べ物として相応しいかどうか（厳しめにお願いします）」の判定を含めてください。全体的に内容は簡潔にまとめて下さい.
+    4. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素（可能な限り,各栄養素が何gかまで）」、そしてそれが「アイドルの食べ物として相応しいかどうか（厳しめにお願いします）」の判定を含めてください。全体的に内容は簡潔にまとめて下さい.
     5. 【構成】複数の画像に食事が写っている場合は、画像ごとにセクションを分けて、簡潔に出力してください。
 
     # 出力フォーマット（食べ物ごとの記述例）
@@ -60,7 +65,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
                 config=config,
             )
     except Exception as e:
-        print(f"Error analyzing meal image(3.1-flash-lite): {e}")
+        logging.error(f"Error analyzing meal image(3.1-flash-lite): {e}")
         # 失敗した場合は別のモデルでも試す
         try:
             response = get_client().models.generate_content(
@@ -69,7 +74,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
             config=config,
         )
         except Exception as e2:
-            print(f"Error analyzing meal image(3.5-flash): {e2}")
+            logging.error(f"Error analyzing meal image(3.5-flash): {e2}")
             # 失敗した場合は下位モデルでも試す
             try:
                 response = get_client().models.generate_content(
@@ -78,7 +83,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]]) -> str:
                     config=config,
                 )
             except Exception as e3:
-                print(f"Error analyzing meal image(2.5-flash): {e3}")
+                logging.error(f"Error analyzing meal image(2.5-flash): {e3}")
                 return "いっぱい送ってくれてありがとうね!今日はもう遅いから寝るわよ!"
 
     return response.text
