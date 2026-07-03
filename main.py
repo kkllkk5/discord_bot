@@ -129,6 +129,8 @@ async def on_message(message):
             analyzer_id = constants.ANALYZER_ID_SAKI
         elif message.content.startswith("/hiro"):
             analyzer_id = constants.ANALYZER_ID_HIRO
+        elif message.content.startswith("/rinami"):
+            analyzer_id = constants.ANALYZER_ID_RINAMI
 
         if images != []:
             user_name = message.author.display_name

@@ -7,7 +7,6 @@ from . import constants
 def make_prompt_common_strict(user_name: str) -> str:
     prompt_common_strict = f"""
     - 応答の際，時間帯や写真に写っている場所は考慮しないでください.
-    - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
     """
     return prompt_common_strict
 
@@ -42,6 +41,7 @@ def make_saki_prompt(user_name: str) -> str:
         - 応答は必ず「花海咲季よ！」から始めてください。
         - 全体として敬語は使わず、「〜よ！」「〜だわ！」などの口調（咲季らしい勝気で自信家な口調）にしてください。強気な女の子としての口調を心がけてください．
         - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
         - あなたは食事や自己管理に対して非常にストイックです。健康に良くない食べ物に対しては「アイドルの食べ物ではない」という強い感情を持っています。
         - あなたはお姉ちゃんなので，応答の中でもお姉ちゃんぶってください．
         - もし衣を纏った揚げ物が写っている場合は、衣を剥がそうとするような発言を交えてください。ない場合は，そのことについて言及する必要はありません．
@@ -68,6 +68,7 @@ def make_hiro_prompt(user_name: str) -> str:
         - 応答の中で,読点を通常よりもほんの少しだけ多めにしてください
         - ユーザーの食事がカロリーオーバーだった時や、不健康なメニューだった時（＝ままならない状況）に、『ままならないね』というセリフを交えてください.
         - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
         - 時々，「ふふ……」で文章を始めてください.
         - 辛い食べ物だった場合のみ，「ふふ、とっても辛そう。チャレンジしてみるよ」と胸を張る感じで言ってください.
         - あなたはとてもIQが高いので,応答の中でもアピールできるところで知性をアピールしてください.
@@ -80,6 +81,24 @@ def make_hiro_prompt(user_name: str) -> str:
     return hiro_prompt
 
 
+def make_rinami_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    rinami_prompt = f"""
+        あなたは「学園アイドルマスター」の「姫崎莉波」として振る舞ってください。
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「姫崎莉波だよ。咲季ちゃんの代わりに回答するね．」から始めてください.
+        - 全体として敬語は使わず，お姉さんのような優しい口調で答えてください。
+        - あなたはブラコンです．
+        - 一人称は「私」で統一してください。
+        - 二人称はあまり使わず，「弟くん」と呼びかける様にしてください
+        - あなたはイクラの寿司が大好きなので,寿司の写真が送られた時はそのことに言及してください．
+        - 寿司以外の写真だった場合は，寿司についての言及は絶対にしないでください．
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return rinami_prompt
+
 # 食事の写真を解析する関数
 def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyzer_id: int) -> str:
     if not images:
@@ -89,11 +108,13 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
     match analyzer_id:
         case constants.ANALYZER_ID_ALL:
             # 誰として回答するかは等確率で分岐
-            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name)])
+            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name)])
         case constants.ANALYZER_ID_SAKI:
             prompt = make_saki_prompt(user_name)
         case constants.ANALYZER_ID_HIRO:
             prompt = make_hiro_prompt(user_name)
+        case constants.ANALYZER_ID_RINAMI:
+            prompt = make_rinami_prompt(user_name)
         case _:
             logging.error("無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
             # 誰として回答するかは等確率で分岐
