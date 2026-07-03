@@ -12,6 +12,7 @@ import datetime
 from discord.ext import tasks
 from server import server_thread
 import logging
+import asyncio
 
 token = os.getenv('TOKEN')
 # 接続に必要なオブジェクトを生成
@@ -114,10 +115,20 @@ async def on_message(message):
                 # 中身をバイト列として取得
                 image_bytes = await attachment.read()
                 images.append((image_bytes, attachment.content_type))
+        
+        if images != []:
+            user_name = message.author.display_name
+            meal_analyze_semaphore = asyncio.Semaphore(2)
 
-        response_text = meal_analyze.analyze_meal_images(images)
-        if (response_text != None) and (response_text != ""):
-            await message.channel.send(response_text)
+            async with meal_analyze_semaphore:
+                response_text = await asyncio.to_thread(
+                    meal_analyze.analyze_meal_images,
+                    images,
+                    user_name,
+                )
+
+            if (response_text != None) and (response_text != ""):
+                await message.channel.send(response_text)
         else:
             logger.info("食事の画像ではないと判断されたため，解析はスキップされました．")
 
