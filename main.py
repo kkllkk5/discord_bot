@@ -30,7 +30,7 @@ logger = logging.getLogger("discord.client")
 TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
 TECH_NEWS_CHANNEL_ID = 1515350526718378034  # 技術ニュースチャンネルのID
 
-MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645,1366375555016032336] # 食事の写真解析を許可するチャンネルのID
+MEAL_ANALYZE_CHANNEL_ID = [1521351966415130645,1366375555016032336,1393923479023386750] # 食事の写真解析を許可するチャンネルのID
 DEBUG_CHANNNEL_ID = 1521351966415130645 # デバッグ用のチャンネル
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
@@ -143,7 +143,7 @@ async def on_message(message):
                 )
 
             if (response_text != None) and (response_text != ""):
-                await message.channel.send(response_text)
+                await message.reply(response_text)
         else:
             logger.info("食事の画像ではないと判断されたため，解析はスキップされました．")
 
