@@ -6,6 +6,7 @@ import feature.iidx as iidx  # 自作パッケージ
 import feature.tech as tech  # 自作パッケージ
 import feature.news as news  # 自作パッケージ
 import feature.meal_analyze as meal_analyze  # 自作パッケージ
+import feature.constants as constants  # 自作パッケージ
 from zoneinfo import ZoneInfo
 from datetime import time
 import datetime
@@ -108,6 +109,7 @@ async def on_message(message):
     # 食事の写真の可能性が80%以下の場合は，何も応答しない
     if message.attachments and (message.channel.id in MEAL_ANALYZE_CHANNEL_ID):
         images = []
+        # 添付ファイルを取得
         for attachment in message.attachments:
             # 添付ファイルが画像かどうかを判定
             if attachment.content_type and attachment.content_type.startswith("image"):
@@ -115,7 +117,15 @@ async def on_message(message):
                 # 中身をバイト列として取得
                 image_bytes = await attachment.read()
                 images.append((image_bytes, attachment.content_type))
-        
+
+        analyzer_id = constants.ANALYZER_ID_ALL # デフォルトは全員からランダムに選択
+
+        # テキストでコマンドが打たれている場合は，回答者を指定する
+        if message.content.startswith("/saki"):
+            analyzer_id = constants.ANALYZER_ID_SAKI
+        elif message.content.startswith("/hiro"):
+            analyzer_id = constants.ANALYZER_ID_HIRO
+
         if images != []:
             user_name = message.author.display_name
             meal_analyze_semaphore = asyncio.Semaphore(2)
@@ -125,6 +135,7 @@ async def on_message(message):
                     meal_analyze.analyze_meal_images,
                     images,
                     user_name,
+                    analyzer_id
                 )
 
             if (response_text != None) and (response_text != ""):

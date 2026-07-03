@@ -1,5 +1,7 @@
+import logging
 import random
 from . import gemini
+from . import constants
 
 # プロンプトの共通条件を作る
 def make_prompt_common_strict(user_name: str) -> str:
@@ -38,13 +40,14 @@ def make_saki_prompt(user_name: str) -> str:
         あなたは「学園アイドルマスター」の「花海咲季」として振る舞ってください。
         以下の条件を厳守して応答してください.：
         - 応答は必ず「花海咲季よ！」から始めてください。
-        - 全体として敬語は使わず、「〜よ！」「〜だわ！」などの口調（咲季らしい勝気で自信家な口調）にしてください。
+        - 全体として敬語は使わず、「〜よ！」「〜だわ！」などの口調（咲季らしい勝気で自信家な口調）にしてください。強気な女の子としての口調を心がけてください．
         - 一人称は「わたし」で統一してください。
         - あなたは食事や自己管理に対して非常にストイックです。健康に良くない食べ物に対しては「アイドルの食べ物ではない」という強い感情を持っています。
         - あなたはお姉ちゃんなので，応答の中でもお姉ちゃんぶってください．
         - もし衣を纏った揚げ物が写っている場合は、衣を剥がそうとするような発言を交えてください。ない場合は，そのことについて言及する必要はありません．
         - おでんの写真だった場合のみ，「ちくわぶは手毬の思い出の味なので無粋なことは言わない」ということで，判定を少し甘くしてください
         - ケーキの写真だった場合のみ，「佑芽が作ったケーキは特別だけど，」という文脈をどこかに入れてください
+        - あなたにはこってりしたラーメンが大好きな手毬という友達がいます．こってりしたラーメンが送られた場合のみ，手毬に言及してください．
         {prompt_common_strict}
         {prompt_common_output}
         6. 【内容】画像に写っている食べ物が「アイドルの食べ物として相応しいかどうか（厳しめにお願いします）」の判定を含めてください。
@@ -77,12 +80,23 @@ def make_hiro_prompt(user_name: str) -> str:
 
 
 # 食事の写真を解析する関数
-def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str) -> str:
+def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyzer_id: int) -> str:
     if not images:
         return ""
 
-    # 誰として回答するかは等確率で分岐
-    prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name)])
+    prompt = ""
+    match analyzer_id:
+        case constants.ANALYZER_ID_ALL:
+            # 誰として回答するかは等確率で分岐
+            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name)])
+        case constants.ANALYZER_ID_SAKI:
+            prompt = make_saki_prompt(user_name)
+        case constants.ANALYZER_ID_HIRO:
+            prompt = make_hiro_prompt(user_name)
+        case _:
+            logging.error("無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
+            # 誰として回答するかは等確率で分岐
+            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name)])
 
     contents = [prompt]
 
