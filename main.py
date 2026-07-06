@@ -7,6 +7,7 @@ import feature.tech as tech  # 自作パッケージ
 import feature.news as news  # 自作パッケージ
 import feature.meal_analyze as meal_analyze  # 自作パッケージ
 import feature.constants as constants  # 自作パッケージ
+import feature.dice_roll as dice_roll # 自作パッケージ
 from zoneinfo import ZoneInfo
 from datetime import time
 import datetime
@@ -107,6 +108,30 @@ async def on_message(message):
         response = news.main()
         await message.channel.send(response)
     '''
+
+    # /dice {振る回数} {ダイスの面数}と送ると，ダイスロールを実行
+    # 例: 「/dice 1 100」と送ると，1d100を実行
+    # 「/dice 1 4 1 6」と送ると，1d4+1d6を実行
+    if re.match('/dice ([0-9]+)+', message.content):
+        try:
+            # 入力から振る回数・ダイスの面数のリストを作成
+            times_list, num_faces_list = list(map(int,message.content.split()[1::2])),list(map(int,message.content.split()[2::2]))
+
+            response = dice_roll.dice_roll(times_list,num_faces_list)
+            await message.reply(response)
+
+        except TypeError as e:
+            logging.error(f"{e}:message:{message.content}")
+            await message.reply("ダイスを振る回数,面数を正しく指定してね！")
+        except ValueError as e:
+            logging.error(f"{e}:message:{message.content}")
+            await message.reply("ダイスを振る回数,面数を正しく指定してね！")
+    # /diceとだけ送った場合は1d100を実行
+    elif message.content == '/dice':
+        response = dice_roll.dice_roll([1],[100])
+        await message.reply(response)
+
+
     
     # 食事の写真を送ると,内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
