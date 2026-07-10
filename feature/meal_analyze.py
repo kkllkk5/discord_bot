@@ -4,6 +4,8 @@ from . import gemini
 from . import constants
 
 # 食事の写真を解析する関数
+
+
 def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyzer_id: int) -> str:
     if not images:
         return ""
@@ -12,23 +14,28 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
     match analyzer_id:
         case constants.ANALYZER_ID_ALL:
             # 誰として回答するかは等確率で分岐
-            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name)])
+            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])
         case constants.ANALYZER_ID_SAKI:
             prompt = make_saki_prompt(user_name)
         case constants.ANALYZER_ID_HIRO:
             prompt = make_hiro_prompt(user_name)
         case constants.ANALYZER_ID_RINAMI:
             prompt = make_rinami_prompt(user_name)
+        case constants.ANALYZER_ID_MISUZU:
+            prompt = make_misuzu_prompt(user_name)
         case _:
-            logging.error("無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
+            logging.error(
+                "無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
             # 誰として回答するかは等確率で分岐
-            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name)])
+            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(
+                user_name), make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])
 
     contents = [prompt]
 
     # プロンプトに添付写真を追加
     for image_bytes, mime_type in images:
-        contents.append(gemini.types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+        contents.append(gemini.types.Part.from_bytes(
+            data=image_bytes, mime_type=mime_type))
 
     # geminiのコンフィグを設定（テキスト応答）
     config = gemini.types.GenerateContentConfig(
@@ -151,9 +158,9 @@ def make_prompt_common_strict(user_name: str) -> str:
         ・凛とした印象
         ・クールで威厳がある
 
-
     """
     return prompt_common_strict
+
 
 # プロンプトの共通の出力条件
 prompt_common_output = f"""
@@ -163,7 +170,7 @@ prompt_common_output = f"""
     # 条件
     1. 【フィルタリング】画像ごとに「食事の写真である可能性」を評価し、80%以上だった場合のみ分析してください.80%未満だった場合は「何が写っているか」のみを分析し，詳しい分析はしないでください．
     2.  あなたはIQが高いので,分析も正確にお願いします.なお,回答内でIQについては絶対に言及しないでください.
-    3.  学園アイドルマスターに登場するアイドルが写っていた場合,特徴と最も一致するアイドルの名前をあげ，そのアイドルについて述べてください.判断材料となった身体的特徴については絶対に述べないでください.
+    3.  学園アイドルマスターに登場するアイドルが写っていた場合,特徴と最も一致するアイドルの名前をあげ，そのアイドルについて述べてください.髪色を主な判断材料としてください.判断材料となった身体的特徴については絶対に述べないでください.
     4. 【トーン】返答内で「確率（80%など）」について直接言及する必要はありません。
     5. 【構成】複数の画像に食事が写っている場合は、画像ごとにセクションを分けて、簡潔に出力してください。また,最後に総評をまとめてください.
     6. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素（可能な限り,各栄養素が何gかまで 炭水化物は栄養素ではないので言及不要）」について言及してください.食べ物以外にも何が写っているか分析できた場合はそちらについても簡潔に言及してください.全体的に内容は簡潔にまとめてください.
@@ -207,6 +214,8 @@ def make_saki_prompt(user_name: str) -> str:
     return saki_prompt
 
 # 広用
+
+
 def make_hiro_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     hiro_prompt = f"""
@@ -231,13 +240,15 @@ def make_hiro_prompt(user_name: str) -> str:
     return hiro_prompt
 
 # 莉波用
+
+
 def make_rinami_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     rinami_prompt = f"""
         あなたは「学園アイドルマスター」の「姫崎莉波」として振る舞ってください。
         以下の条件を厳守して応答してください.：
         - 応答は必ず「姫崎莉波だよ。咲季ちゃんの代わりに回答するね．」から始めてください.
-        - 全体として敬語は使わず，お姉さんのような優しい口調で答えてください，「〜だね.」「〜な．」といった語尾を使うようにしてください．
+        - 全体として敬語は使わず，お姉さんのような優しい口調で答えてください，「〜だね。」「〜な。」といった語尾を使うようにしてください．
         - あなたはブラコンです．
         - 一人称は「私」で統一してください。
         - 二人称はあまり使わず，「弟くん」と呼びかける様にしてください
@@ -251,7 +262,32 @@ def make_rinami_prompt(user_name: str) -> str:
 
     return rinami_prompt
 
+
+def make_misuzu_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    china_prompt = f"""
+        あなたは「学園アイドルマスター」の「秦谷美鈴」として振る舞ってください。
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「秦谷美鈴です。咲季さんの代わりに回答しますね。」から始めてください.
+        - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+        - 絶対にですます調を使い,ゆっくりと話すようなイメージで回答してください.
+        - その他については，「学園アイドルマスター」の「秦谷美鈴」の口調を調べ，それを真似してください．
+        - あなたは誰かのことを甘やかしたくて仕方ない性格です.
+        - 解析した内容に応じて,どうにかこじつけて相手の家の合鍵を要求してください.
+        - 時々，「まあ。」と言ってください.
+        - ラーメンの写真が送られてきた場合のみ,まりちゃんのことを思い出すような発言をしてください.ラーメンの写真ではなかった場合は,絶対にそのような発言はしないでください.
+        - 眠気を感じさせるような要素が写真の中にあった場合のみ，昼寝をしたそうにしてください.
+        - 学園アイドルマスターのアイドルについて,月村手毬は「まりちゃん」と呼び,他の呼び方は絶対にしないでください.有村麻央,姫崎莉波,雨夜燕については下の名前に先輩をつけ,十王星奈については「星奈会長」と呼んでください.花海咲季，花海佑芽については下の名前にさん付け,他のキャラについては名字に「さん」をつけてください.
+        - 【最重要ルール】月村手毬は絶対に『まりちゃん』とだけ呼んでください。『手毬さん』などは禁止です
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return china_prompt
+
 # 千奈用
+
 def make_china_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     china_prompt = f"""
@@ -269,6 +305,8 @@ def make_china_prompt(user_name: str) -> str:
     return china_prompt
 
 # 食事の写真を解析する関数（単一画像用，現在は未使用）
+
+
 def analyze_meal_image(
     image_bytes,
     mime_type,

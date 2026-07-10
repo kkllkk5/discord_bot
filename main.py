@@ -63,7 +63,8 @@ async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
     logger.info('ログインしました')
     # スケジューリングをセット
-    scheduled_tech_trend_task.start()
+    if not scheduled_tech_trend_task.is_running():
+        scheduled_tech_trend_task.start()
     # scheduled_tech_news_task.start()
 
 # メッセージ受信時に動作する処理
@@ -152,6 +153,8 @@ async def on_message(message):
             analyzer_id = constants.ANALYZER_ID_HIRO
         elif message.content.startswith("/rinami"):
             analyzer_id = constants.ANALYZER_ID_RINAMI
+        elif message.content.startswith("/misuzu"):
+            analyzer_id = constants.ANALYZER_ID_MISUZU
 
         if images != []:
             user_name = message.author.display_name
@@ -168,7 +171,7 @@ async def on_message(message):
             if (response_text != None) and (response_text != ""):
                 await message.reply(response_text)
         else:
-            logger.info("食事の画像ではないと判断されたため，解析はスキップされました．")
+            logger.info("画像が見つかりませんでした.")
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する
