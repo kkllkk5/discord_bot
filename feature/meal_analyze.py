@@ -2,6 +2,83 @@ import logging
 import random
 from . import gemini
 from . import constants
+import discord
+import asyncio
+
+class AnalyzeView(discord.ui.View):
+    def __init__(self,emojis):
+        super().__init__()
+        self.result = None
+        self.event = asyncio.Event()
+        self.analyze_saki_button.emoji = emojis["saki"]
+        self.analyze_hiro_button.emoji = emojis["hiro"]
+        self.analyze_rinami_button.emoji = emojis["rinami"]
+        
+
+    @discord.ui.button(
+        label="全員からランダム",
+        style=discord.ButtonStyle.gray
+    )
+    async def analyze_all_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        self.result = constants.ANALYZER_ID_ALL
+        self.event.set()
+        await interaction.response.defer()
+
+    @discord.ui.button(
+        label="咲季",
+        style=discord.ButtonStyle.primary,
+    )
+    async def analyze_saki_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        self.result = constants.ANALYZER_ID_SAKI
+        self.event.set()
+        await interaction.response.defer()
+
+    @discord.ui.button(
+        label="広",
+        style=discord.ButtonStyle.primary
+    )
+    async def analyze_hiro_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        self.result = constants.ANALYZER_ID_HIRO
+        self.event.set()
+        await interaction.response.defer()
+    @discord.ui.button(
+        label="莉波",
+        style=discord.ButtonStyle.primary
+    )
+    async def analyze_rinami_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        self.result = constants.ANALYZER_ID_RINAMI
+        self.event.set()
+        await interaction.response.defer()
+
+    @discord.ui.button(
+        label="キャンセル",
+        style=discord.ButtonStyle.secondary
+    )
+    async def cancel_button(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        self.result = constants.ANALYZER_ID_CANCELLED
+        self.event.set()
+        await interaction.response.defer()
+
 
 # 食事の写真を解析する関数
 
@@ -24,8 +101,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
         case constants.ANALYZER_ID_MISUZU:
             prompt = make_misuzu_prompt(user_name)
         case _:
-            logging.error(
-                "無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
+            logging.error(f"無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
             # 誰として回答するかは等確率で分岐
             prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(
                 user_name), make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])

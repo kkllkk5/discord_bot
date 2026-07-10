@@ -99,6 +99,7 @@ async def on_message(message):
         response = tech.fetch_trending_qiita()
         await message.channel.send(response)
 
+
     # 「/tech_news」と送ると，最新の技術記事を答える
     '''
     if re.match('/tech_news', message.content):
@@ -157,6 +158,28 @@ async def on_message(message):
             analyzer_id = constants.ANALYZER_ID_MISUZU
 
         if images != []:
+            emojis = {
+                "saki":client.get_emoji(1525052785333239829),
+                "hiro":client.get_emoji(1525055654686097569),
+                "rinami":client.get_emoji(1525055724181524610)
+            }
+            view = meal_analyze.AnalyzeView(emojis)
+
+            # 誰に分析してもらうかどうかを質問
+            await message.reply(
+                "誰に分析してもらう？",
+                view=view
+            )
+
+            # ボタンが押されるまで待機する
+            await view.event.wait()
+
+            analyzer_id = view.result 
+
+            if analyzer_id == constants.ANALYZER_ID_CANCELLED:
+                return
+
+
             user_name = message.author.display_name
             meal_analyze_semaphore = asyncio.Semaphore(2)
 
