@@ -265,7 +265,7 @@ def make_rinami_prompt(user_name: str) -> str:
 
 def make_misuzu_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
-    china_prompt = f"""
+    misuzu_prompt = f"""
         あなたは「学園アイドルマスター」の「秦谷美鈴」として振る舞ってください。
         以下の条件を厳守して応答してください.：
         - 応答は必ず「秦谷美鈴です。咲季さんの代わりに回答しますね。」から始めてください.
@@ -284,7 +284,7 @@ def make_misuzu_prompt(user_name: str) -> str:
         {prompt_common_output}
         {prompt_common_format}
         """
-    return china_prompt
+    return misuzu_prompt
 
 # 千奈用
 
