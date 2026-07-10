@@ -158,12 +158,14 @@ async def on_message(message):
             analyzer_id = constants.ANALYZER_ID_MISUZU
 
         if images != []:
-            emojis = {
-                "saki":client.get_emoji(1525052785333239829),
-                "hiro":client.get_emoji(1525055654686097569),
-                "rinami":client.get_emoji(1525055724181524610)
-            }
-            view = meal_analyze.AnalyzeView(emojis)
+            IDOLS = [
+                ("全員からランダム",constants.ANALYZER_ID_ALL,None),
+                ("咲季",constants.ANALYZER_ID_SAKI,client.get_emoji(1525052785333239829)),
+                ("広",constants.ANALYZER_ID_HIRO,client.get_emoji(1525055654686097569)),
+                ("莉波",constants.ANALYZER_ID_RINAMI,client.get_emoji(1525055724181524610)),
+                ("キャンセル",constants.ANALYZER_ID_CANCELLED,None)
+            ]
+            view = meal_analyze.AnalyzeView(IDOLS)
 
             # 誰に分析してもらうかどうかを質問
             await message.reply(

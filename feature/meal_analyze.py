@@ -6,78 +6,31 @@ import discord
 import asyncio
 
 class AnalyzeView(discord.ui.View):
-    def __init__(self,emojis):
+    def __init__(self,IDOLS):
         super().__init__()
         self.result = None
         self.event = asyncio.Event()
-        self.analyze_saki_button.emoji = emojis["saki"]
-        self.analyze_hiro_button.emoji = emojis["hiro"]
-        self.analyze_rinami_button.emoji = emojis["rinami"]
-        
+        for label, analyzer_id, emoji in IDOLS:
+            if emoji != None:
+                button = discord.ui.Button(
+                    label=label,
+                    emoji=emoji,
+                    style=discord.ButtonStyle.primary,
+                )
+            else:
+                button = discord.ui.Button(
+                    label=label,
+                    style=discord.ButtonStyle.primary,
+                )
 
-    @discord.ui.button(
-        label="全員からランダム",
-        style=discord.ButtonStyle.gray
-    )
-    async def analyze_all_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        self.result = constants.ANALYZER_ID_ALL
-        self.event.set()
-        await interaction.response.defer()
+            async def callback(interaction, analyzer_id=analyzer_id):
+                self.result = analyzer_id
+                self.event.set()
+                await interaction.response.defer()
 
-    @discord.ui.button(
-        label="咲季",
-        style=discord.ButtonStyle.primary,
-    )
-    async def analyze_saki_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        self.result = constants.ANALYZER_ID_SAKI
-        self.event.set()
-        await interaction.response.defer()
-
-    @discord.ui.button(
-        label="広",
-        style=discord.ButtonStyle.primary
-    )
-    async def analyze_hiro_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        self.result = constants.ANALYZER_ID_HIRO
-        self.event.set()
-        await interaction.response.defer()
-    @discord.ui.button(
-        label="莉波",
-        style=discord.ButtonStyle.primary
-    )
-    async def analyze_rinami_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        self.result = constants.ANALYZER_ID_RINAMI
-        self.event.set()
-        await interaction.response.defer()
-
-    @discord.ui.button(
-        label="キャンセル",
-        style=discord.ButtonStyle.secondary
-    )
-    async def cancel_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        self.result = constants.ANALYZER_ID_CANCELLED
-        self.event.set()
-        await interaction.response.defer()
+            button.callback = callback
+            self.add_item(button)
+    
 
 
 # 食事の写真を解析する関数
