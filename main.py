@@ -26,6 +26,9 @@ client = discord.Client(intents=intents)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("discord.client")
 
+#食事解析の同時実行数制限
+meal_analyze_semaphore = asyncio.Semaphore(2)
+
 
 # スケジューリングタスク
 TECH_TREND_CHANNEL_ID = 1493961159148310578  # 技術記事チャンネルのID
@@ -147,56 +150,53 @@ async def on_message(message):
 
         analyzer_id = constants.ANALYZER_ID_ALL # デフォルトは全員からランダムに選択
 
-        # テキストでコマンドが打たれている場合は，回答者を指定する
-        if message.content.startswith("/saki"):
-            analyzer_id = constants.ANALYZER_ID_SAKI
-        elif message.content.startswith("/hiro"):
-            analyzer_id = constants.ANALYZER_ID_HIRO
-        elif message.content.startswith("/rinami"):
-            analyzer_id = constants.ANALYZER_ID_RINAMI
-        elif message.content.startswith("/misuzu"):
-            analyzer_id = constants.ANALYZER_ID_MISUZU
-
         if images != []:
+            # 各ボタンの表示順，ID,絵文字,ボタンの色を指定
             IDOLS = [
-                ("全員からランダム",constants.ANALYZER_ID_ALL,None),
-                ("咲季",constants.ANALYZER_ID_SAKI,client.get_emoji(1525052785333239829)),
-                ("広",constants.ANALYZER_ID_HIRO,client.get_emoji(1525055654686097569)),
-                ("莉波",constants.ANALYZER_ID_RINAMI,client.get_emoji(1525055724181524610)),
-                ("キャンセル",constants.ANALYZER_ID_CANCELLED,None)
+                ("全員からランダム",0,constants.ANALYZER_ID_ALL,None,discord.ButtonStyle.secondary),
+                ("咲季",1,constants.ANALYZER_ID_SAKI,client.get_emoji(1525052785333239829),discord.ButtonStyle.primary),
+                ("広",1,constants.ANALYZER_ID_HIRO,client.get_emoji(1525055654686097569),discord.ButtonStyle.primary),
+                ("莉波",1,constants.ANALYZER_ID_RINAMI,client.get_emoji(1525055724181524610),discord.ButtonStyle.primary),
+                ("美鈴",1,constants.ANALYZER_ID_MISUZU,client.get_emoji(1525336748283006996),discord.ButtonStyle.primary),
+                ("キャンセル",2,constants.ANALYZER_ID_CANCELLED,None,discord.ButtonStyle.secondary)
             ]
-            view = meal_analyze.AnalyzeView(IDOLS)
-
-            # 誰に分析してもらうかどうかを質問
-            await message.reply(
-                "誰に分析してもらう？",
-                view=view
+            view = meal_analyze.AnalyzeView(
+                owner_id=message.author.id,
+                IDOLS=IDOLS
             )
 
+            # 誰に分析してもらうかどうかを質問
+            control_message = await message.reply(
+                f"{message.author.mention} 誰に分析してもらう？",
+                view=view
+            )
+            view.message = control_message
             # ボタンが押されるまで待機する
             await view.event.wait()
 
             analyzer_id = view.result 
 
-            if analyzer_id == constants.ANALYZER_ID_CANCELLED:
-                return
+            try:
+                # キャンセルとなった場合は解析を実行しない
+                if analyzer_id == constants.ANALYZER_ID_CANCELLED:
+                    return 
 
-
-            user_name = message.author.display_name
-            meal_analyze_semaphore = asyncio.Semaphore(2)
-
-            async with meal_analyze_semaphore:
-                response_text = await asyncio.to_thread(
-                    meal_analyze.analyze_meal_images,
-                    images,
-                    user_name,
-                    analyzer_id
-                )
-
-            if (response_text != None) and (response_text != ""):
-                await message.reply(response_text)
+                user_name = message.author.display_name
+                async with meal_analyze_semaphore:
+                    response_text = await asyncio.to_thread(
+                        meal_analyze.analyze_meal_images,
+                        images,
+                        user_name,
+                        analyzer_id
+                    )
+                if (response_text != None) and (response_text != ""):
+                    await message.reply(response_text)
+            finally:
+                await view.message.delete()
         else:
             logger.info("画像が見つかりませんでした.")
+
+
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する

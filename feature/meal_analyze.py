@@ -6,35 +6,61 @@ import discord
 import asyncio
 
 class AnalyzeView(discord.ui.View):
-    def __init__(self,IDOLS):
-        super().__init__()
+    def __init__(self,owner_id,IDOLS):
+        super().__init__(timeout=300)
         self.result = None
         self.event = asyncio.Event()
-        for label, analyzer_id, emoji in IDOLS:
-            if emoji != None:
-                button = discord.ui.Button(
-                    label=label,
-                    emoji=emoji,
-                    style=discord.ButtonStyle.primary,
-                )
-            else:
-                button = discord.ui.Button(
-                    label=label,
-                    style=discord.ButtonStyle.primary,
+        self.owner_id = owner_id
+
+        for label, row, analyzer_id, emoji, style in IDOLS:
+            button = discord.ui.Button(
+                label=label,
+                emoji=emoji,
+                style=style,
+                row=row,
+            )
+
+            async def callback(
+                interaction, 
+                analyzer_id=analyzer_id,
+                button=button):
+                # メッセージの送信対象のユーザーしかボタンを押せないようにする
+                if interaction.user.id != self.owner_id:
+                    return
+
+                self.result = analyzer_id
+
+                button.style = discord.ButtonStyle.success
+                # ボタンを押した後,全ボタンを無効化
+                for item in self.children:
+                    item.disabled = True
+
+                await interaction.response.edit_message(
+                    content="解析中...",
+                    view=self
                 )
 
-            async def callback(interaction, analyzer_id=analyzer_id):
-                self.result = analyzer_id
+                # 待機している処理を再開
                 self.event.set()
-                await interaction.response.defer()
+                self.stop()
 
             button.callback = callback
             self.add_item(button)
+
+    # タイムアウト時の処理
+    async def on_timeout(self):
+        # ボタンを全部無効化
+        for item in self.children:
+            item.disabled = True
+
+        self.result = constants.ANALYZER_ID_CANCELLED
+        self.event.set()
+        self.stop()
+    
     
 
 
 # 食事の写真を解析する関数
-
 
 def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyzer_id: int) -> str:
     if not images:
