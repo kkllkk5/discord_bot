@@ -8,15 +8,16 @@ import feature.news as news  # 自作パッケージ
 import feature.meal_analyze as meal_analyze  # 自作パッケージ
 import feature.constants as constants  # 自作パッケージ
 import feature.dice_roll as dice_roll # 自作パッケージ
+import feature.bot_status as bot_status
 from zoneinfo import ZoneInfo
-from datetime import time
-import datetime
+from datetime import time,datetime
 from discord.ext import tasks
 from server import server_thread
 import logging
 import asyncio
 
 token = os.getenv('TOKEN')
+JST = ZoneInfo("Asia/Tokyo")
 # 接続に必要なオブジェクトを生成
 intents = discord.Intents.default()
 intents.message_content = True
@@ -44,9 +45,9 @@ async def send_scheduled_message(channel_id: int, message: str) -> None:
 
 # 技術記事の取得を毎日午前8時に実行
 
-@tasks.loop(time=time(hour=8, tzinfo=ZoneInfo("Asia/Tokyo")))
+@tasks.loop(time=time(hour=8, tzinfo=JST))
 async def scheduled_tech_trend_task():
-    today = datetime.datetime.now().day
+    today = datetime.now().day
     if (today % 2) == 0:  # 偶数日なら実行
         message = tech.fetch_trending_qiita()
         await send_scheduled_message(TECH_TREND_CHANNEL_ID, message)
@@ -60,14 +61,27 @@ async def scheduled_tech_news_task():
     await send_scheduled_message(TECH_NEWS_CHANNEL_ID, message)
 '''
 
+# 4,5,20時にアクティビティを更新
+@tasks.loop(time=[
+    time(hour=4, tzinfo=JST),
+    time(hour=5, tzinfo=JST),
+    time(hour=20, tzinfo=JST),
+])
+async def update_presence():
+    await bot_status.set_presence(client)
+
 # 起動時に動作する処理
 @client.event
 async def on_ready():
-    # 起動したらターミナルにログイン通知が表示される
+    # 起動したらログイン通知が表示される
     logger.info('ログインしました')
+    # アクティビティを更新
+    await bot_status.set_presence(client)
     # スケジューリングをセット
     if not scheduled_tech_trend_task.is_running():
         scheduled_tech_trend_task.start()
+    if not update_presence.is_running():
+        update_presence.start()
     # scheduled_tech_news_task.start()
 
 # メッセージ受信時に動作する処理
