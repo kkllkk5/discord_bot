@@ -172,7 +172,11 @@ async def on_message(message):
                 ("広",1,constants.ANALYZER_ID_HIRO,client.get_emoji(1525055654686097569),discord.ButtonStyle.primary),
                 ("莉波",1,constants.ANALYZER_ID_RINAMI,client.get_emoji(1525055724181524610),discord.ButtonStyle.primary),
                 ("美鈴",1,constants.ANALYZER_ID_MISUZU,client.get_emoji(1525336748283006996),discord.ButtonStyle.primary),
-                ("キャンセル",2,constants.ANALYZER_ID_CANCELLED,None,discord.ButtonStyle.secondary)
+                ("咲季(エアプ)",2,constants.ANALYZER_ID_SAKI_AIRPLAY,client.get_emoji(1525052785333239829),discord.ButtonStyle.primary),
+                ("広(エアプ)",2,constants.ANALYZER_ID_HIRO_AIRPLAY,client.get_emoji(1525055654686097569),discord.ButtonStyle.primary),
+                ("莉波(エアプ)",2,constants.ANALYZER_ID_RINAMI_AIRPLAY,client.get_emoji(1525055724181524610),discord.ButtonStyle.primary),
+                ("美鈴(エアプ)",2,constants.ANALYZER_ID_MISUZU_AIRPLAY,client.get_emoji(1525336748283006996),discord.ButtonStyle.primary),
+                ("キャンセル",3,constants.ANALYZER_ID_CANCELLED,None,discord.ButtonStyle.secondary)
             ]
             view = meal_analyze.AnalyzeView(
                 owner_id=message.author.id,
@@ -188,7 +192,10 @@ async def on_message(message):
             # ボタンが押されるまで待機する
             await view.event.wait()
 
-            analyzer_id = view.result 
+            analyzer_id = view.result
+            if analyzer_id is None:
+                # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
+                return
 
             try:
                 # キャンセルとなった場合は解析を実行しない
@@ -206,7 +213,8 @@ async def on_message(message):
                 if (response_text != None) and (response_text != ""):
                     await message.reply(response_text)
             finally:
-                await view.message.delete()
+                if view.message is not None:
+                    await view.message.delete()
         else:
             logger.info("画像が見つかりませんでした.")
 

@@ -4,6 +4,7 @@ from . import gemini
 from . import constants
 import discord
 import asyncio
+from typing import Optional
 
 class AnalyzeView(discord.ui.View):
     def __init__(self,owner_id,IDOLS):
@@ -11,6 +12,7 @@ class AnalyzeView(discord.ui.View):
         self.result = None
         self.event = asyncio.Event()
         self.owner_id = owner_id
+        self.message: Optional[discord.Message] = None
 
         for label, row, analyzer_id, emoji, style in IDOLS:
             button = discord.ui.Button(
@@ -33,7 +35,8 @@ class AnalyzeView(discord.ui.View):
                 button.style = discord.ButtonStyle.success
                 # ボタンを押した後,全ボタンを無効化
                 for item in self.children:
-                    item.disabled = True
+                    if isinstance(item, discord.ui.Button):
+                        item.disabled = True
 
                 await interaction.response.edit_message(
                     content="解析中...",
@@ -51,7 +54,8 @@ class AnalyzeView(discord.ui.View):
     async def on_timeout(self):
         # ボタンを全部無効化
         for item in self.children:
-            item.disabled = True
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
 
         self.result = constants.ANALYZER_ID_CANCELLED
         self.event.set()
@@ -73,12 +77,20 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
             prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])
         case constants.ANALYZER_ID_SAKI:
             prompt = make_saki_prompt(user_name)
+        case constants.ANALYZER_ID_SAKI_AIRPLAY:
+            prompt = make_saki_airplay_prompt(user_name)
         case constants.ANALYZER_ID_HIRO:
             prompt = make_hiro_prompt(user_name)
+        case constants.ANALYZER_ID_HIRO_AIRPLAY:
+            prompt = make_hiro_airplay_prompt(user_name)
         case constants.ANALYZER_ID_RINAMI:
             prompt = make_rinami_prompt(user_name)
+        case constants.ANALYZER_ID_RINAMI_AIRPLAY:
+            prompt = make_rinami_airplay_prompt(user_name)
         case constants.ANALYZER_ID_MISUZU:
             prompt = make_misuzu_prompt(user_name)
+        case constants.ANALYZER_ID_MISUZU_AIRPLAY:
+            prompt = make_misuzu_airplay_prompt(user_name)
         case _:
             logging.error(f"無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
             # 誰として回答するかは等確率で分岐
@@ -105,7 +117,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
 def make_prompt_common_strict(user_name: str) -> str:
     prompt_common_strict = f"""
     - 応答の際，時間帯や写真に写っている場所は考慮しないでください.特に，時間帯については言及しないでください.
-    - 以下に学園アイドルマスターに登場する各アイドルの特徴を記します．
+    - 以下に学園アイドルマスターに登場する各アイドルの特徴を記します．なお，応答内において各アイドルの身体的な特徴までは絶対に言及しないでください.
     【花海咲季】
         ・1年生
         ・赤みのある茶髪
@@ -228,7 +240,7 @@ prompt_common_output = f"""
     3.  学園アイドルマスターに登場するアイドルが写っていた場合,特徴と最も一致するアイドルの名前をあげ，そのアイドルについて述べてください.髪色を主な判断材料としてください.判断材料となった身体的特徴については絶対に述べないでください.
     4. 【トーン】返答内で「確率（80%など）」について直接言及する必要はありません。
     5. 【構成】複数の画像に食事が写っている場合は、画像ごとにセクションを分けて、簡潔に出力してください。また,最後に総評をまとめてください.
-    6. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素（可能な限り,各栄養素が何gかまで 炭水化物は栄養素ではないので言及不要）」について言及してください.食べ物以外にも何が写っているか分析できた場合はそちらについても簡潔に言及してください.全体的に内容は簡潔にまとめてください.
+    6. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素（可能な限り,各栄養素が何gかまで 炭水化物は言及不要）」について言及してください.食べ物以外にも何が写っているか分析できた場合はそちらについても簡潔に言及してください.全体的に内容は簡潔にまとめてください.
     """
 
 # プロンプトの共通の出力フォーマット
@@ -268,9 +280,28 @@ def make_saki_prompt(user_name: str) -> str:
         """
     return saki_prompt
 
+
+# 咲季（エアプ）用
+def make_saki_airplay_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    saki_airplay_prompt = f"""
+        以下の条件を厳守して応答してください.:
+        - 応答は必ず「サーキサキサキサキサキ！」から始めてください。
+        - 語尾は必ず「〜サキ！」としてください.語尾の「〜わ！」や「〜よ！」を「サキ！」に置き換える感じです
+        - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+
+        {prompt_common_strict}
+        {prompt_common_output}
+        6. 【内容】画像に写っている食べ物が「アイドルの食べ物として相応しいかどうか」の判定を適当に話してください。
+        {prompt_common_format}
+        ・**アイドルの食べ物か**: 
+        """
+    return saki_airplay_prompt
+
+
+
 # 広用
-
-
 def make_hiro_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     hiro_prompt = f"""
@@ -294,9 +325,23 @@ def make_hiro_prompt(user_name: str) -> str:
         """
     return hiro_prompt
 
+# 広(エアプ)用
+def make_hiro_airplay_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    hiro_prompt = f"""
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「ヒーロヒロヒロヒロヒロ！」から始めてください.
+        - 語尾を全て「ヒロ！」としてください.語尾の「〜わ」や「〜ね」を「ヒロ！」に置き換える感じです
+        - 適当なタイミングで『ままならないね』というセリフを交えてください.
+        - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return hiro_prompt
+
 # 莉波用
-
-
 def make_rinami_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     rinami_prompt = f"""
@@ -317,11 +362,27 @@ def make_rinami_prompt(user_name: str) -> str:
 
     return rinami_prompt
 
+# 莉波(エアプ)用
+def make_rinami_airplay_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    rinami_prompt = f"""
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「リーナリナリナリナリナリナ！」から始めてください.
+        - 語尾を全て「リナ！」としてください.語尾の「〜よ」や「〜ね」を「リナ！」に置き換える感じです
+        - 一人称は「私」で統一してください。
+        - 二人称はあまり使わず，「弟くん」と呼びかける様にしてください
+        - 変なところでお姉さんぶってください
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
 
+    return rinami_prompt
+
+# 美鈴用
 def make_misuzu_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     misuzu_prompt = f"""
-        あなたは「学園アイドルマスター」の「秦谷美鈴」として振る舞ってください。
         以下の条件を厳守して応答してください.：
         - 応答は必ず「秦谷美鈴です。咲季さんの代わりに回答しますね。」から始めてください.
         - 一人称は「わたし」で統一してください。
@@ -335,6 +396,24 @@ def make_misuzu_prompt(user_name: str) -> str:
         - 眠気を感じさせるような要素が写真の中にあった場合のみ，昼寝をしたそうにしてください.
         - 学園アイドルマスターのアイドルについて,月村手毬は「まりちゃん」と呼び,他の呼び方は絶対にしないでください.有村麻央,姫崎莉波,雨夜燕については下の名前に先輩をつけ,十王星南については「星南会長」と呼んでください.花海咲季，花海佑芽については下の名前にさん付け,他のキャラについては名字に「さん」をつけてください.
         - 【最重要ルール】月村手毬は絶対に『まりちゃん』とだけ呼んでください。『手毬さん』などは禁止です
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return misuzu_prompt
+
+# 美鈴(エアプ)用
+def make_misuzu_airplay_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    misuzu_prompt = f"""
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「ハータハタハタハタハタハタ！」から始めてください.
+        - 一人称は「わたし」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+        - 語尾を全て「ミス！」としてください.語尾の「〜よ」や「〜ね」を「ミス！」に置き換える感じです
+        - 適当なタイミングで「まあ。」という感嘆符をどこかに入れてください.
+        - あなたの考えを言うようなタイミングでは，「美鈴的には〜〜だと思うミスねぇ。」というふうに言ってください．
+        - 応答の中で適当に理由をでっち上げて相手の合鍵を要求してください.
         {prompt_common_strict}
         {prompt_common_output}
         {prompt_common_format}
@@ -358,13 +437,3 @@ def make_china_prompt(user_name: str) -> str:
         {prompt_common_format}
         """
     return china_prompt
-
-# 食事の写真を解析する関数（単一画像用，現在は未使用）
-
-
-def analyze_meal_image(
-    image_bytes,
-    mime_type,
-    user_name,
-) -> str:
-    return analyze_meal_images([(image_bytes, mime_type)], user_name)
