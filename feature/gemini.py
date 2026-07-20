@@ -4,17 +4,17 @@ import os
 from google import genai
 from google.genai import types
 
-client = None
+_client = None
 
 
 def get_client():
-    global client
-    if client is None:
+    global _client
+    if _client is None:
         api_key = os.getenv("GENAI_API_KEY")
         if api_key is None:
             raise RuntimeError("GENAI_API_KEY environment variable is not set")
-        client = genai.Client(api_key=api_key)
-    return client
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 
 # geminiにcontentsの内容を問い合わせる関数
