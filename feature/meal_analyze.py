@@ -4,7 +4,21 @@ from . import gemini
 from . import constants
 import discord
 import asyncio
-from typing import Optional
+from typing import Callable, Optional
+
+# 使用するプロンプト一覧
+PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
+
+# プロンプト一覧に登録
+# analyzer_id: 分析ID(constantsから取得)
+# prompt_factory:プロンプトのmake関数
+# group:IDOLかairplayか
+def register_prompt_factory(analyzer_id: int, prompt_factory: Callable[[str], str], group: str) -> None:
+    PROMPT_FACTORY_REGISTRY[analyzer_id] = (prompt_factory, group)
+
+# 特定のグループに属するプロンプトのmake関数を全て取得
+def get_prompt_factories_for_group(group: str) -> list[Callable[[str], str]]:
+    return [prompt_factory for analyzer_id, (prompt_factory, prompt_group) in PROMPT_FACTORY_REGISTRY.items() if prompt_group == group]
 
 class AnalyzeView(discord.ui.View):
     def __init__(self,owner_id,IDOLS):
@@ -63,39 +77,55 @@ class AnalyzeView(discord.ui.View):
     
     
 
+# Discord上に表示するボタンをコントロールする関数
+def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) -> list[tuple[str, int, int, Optional[discord.Emoji], discord.ButtonStyle]]:
+    return [
+        # 表示文字列,表示列,分析者ID,表示絵文字,ボタンの表示色
+        ("アイドル全員からランダム", 0, constants.ANALYZER_ID_ALL_IDOL, None, discord.ButtonStyle.secondary),
+        ("咲季", 1, constants.ANALYZER_ID_SAKI, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
+        ("広", 1, constants.ANALYZER_ID_HIRO, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
+        ("莉波", 1, constants.ANALYZER_ID_RINAMI, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
+        ("美鈴", 1, constants.ANALYZER_ID_MISUZU, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
+        ("エアプ全員からランダム", 2, constants.ANALYZER_ID_ALL_AIRPLAY, None, discord.ButtonStyle.secondary),
+        ("咲季(エアプ)", 3, constants.ANALYZER_ID_SAKI_AIRPLAY, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
+        ("広(エアプ)", 3, constants.ANALYZER_ID_HIRO_AIRPLAY, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
+        ("莉波(エアプ)", 3, constants.ANALYZER_ID_RINAMI_AIRPLAY, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
+        ("美鈴(エアプ)", 3, constants.ANALYZER_ID_MISUZU_AIRPLAY, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
+        ("キャンセル", 4, constants.ANALYZER_ID_CANCELLED, None, discord.ButtonStyle.secondary),
+    ]
+
+# 利用するプロンプトを選択
+def get_prompt_for_analyzer(analyzer_id: int, user_name: str) -> str:
+    # ALL_IDOLの場合idolグループからランダム
+    if analyzer_id == constants.ANALYZER_ID_ALL_IDOL:
+        prompt_factories = get_prompt_factories_for_group("idol")
+        return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+    # ALL_AIRPLAYの場合airplayグループからランダム
+    elif analyzer_id == constants.ANALYZER_ID_ALL_AIRPLAY:
+        prompt_factories = get_prompt_factories_for_group("airplay")
+        return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+    # 特定のプロンプトを選択している場合は，そのプロンプトを取得
+    else:
+        prompt_factory_entry = PROMPT_FACTORY_REGISTRY.get(analyzer_id)
+        # 想定外のidが入力された場合はアイドルからランダム選択（安定稼働を優先）
+        if prompt_factory_entry is None:
+            logging.error(
+                f"無効なanalyzer_idが指定されました。すべてのアイドルからランダムに選択します.analyzer_id: {analyzer_id}"
+            )
+            prompt_factories = get_prompt_factories_for_group("idol")
+            return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+        else:
+            prompt_factory, _ = prompt_factory_entry
+            return prompt_factory(user_name)
+
 
 # 食事の写真を解析する関数
-
 def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyzer_id: int) -> str:
     if not images:
         return ""
 
-    prompt = ""
-    match analyzer_id:
-        case constants.ANALYZER_ID_ALL:
-            # 誰として回答するかは等確率で分岐
-            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(user_name),make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])
-        case constants.ANALYZER_ID_SAKI:
-            prompt = make_saki_prompt(user_name)
-        case constants.ANALYZER_ID_SAKI_AIRPLAY:
-            prompt = make_saki_airplay_prompt(user_name)
-        case constants.ANALYZER_ID_HIRO:
-            prompt = make_hiro_prompt(user_name)
-        case constants.ANALYZER_ID_HIRO_AIRPLAY:
-            prompt = make_hiro_airplay_prompt(user_name)
-        case constants.ANALYZER_ID_RINAMI:
-            prompt = make_rinami_prompt(user_name)
-        case constants.ANALYZER_ID_RINAMI_AIRPLAY:
-            prompt = make_rinami_airplay_prompt(user_name)
-        case constants.ANALYZER_ID_MISUZU:
-            prompt = make_misuzu_prompt(user_name)
-        case constants.ANALYZER_ID_MISUZU_AIRPLAY:
-            prompt = make_misuzu_airplay_prompt(user_name)
-        case _:
-            logging.error(f"無効なanalyzer_idが指定されました。すべての候補からランダムに選択します.analyzer_id: {analyzer_id}")
-            # 誰として回答するかは等確率で分岐
-            prompt = random.choice([make_saki_prompt(user_name), make_hiro_prompt(
-                user_name), make_rinami_prompt(user_name),make_misuzu_prompt(user_name)])
+    # analyzer_idと対応するプロンプトを取得
+    prompt = get_prompt_for_analyzer(analyzer_id, user_name)
 
     contents = [prompt]
 
@@ -437,3 +467,13 @@ def make_china_prompt(user_name: str) -> str:
         {prompt_common_format}
         """
     return china_prompt
+
+
+register_prompt_factory(constants.ANALYZER_ID_SAKI, make_saki_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_SAKI_AIRPLAY, make_saki_airplay_prompt, "airplay")
+register_prompt_factory(constants.ANALYZER_ID_HIRO, make_hiro_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_HIRO_AIRPLAY, make_hiro_airplay_prompt, "airplay")
+register_prompt_factory(constants.ANALYZER_ID_RINAMI, make_rinami_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_RINAMI_AIRPLAY, make_rinami_airplay_prompt, "airplay")
+register_prompt_factory(constants.ANALYZER_ID_MISUZU, make_misuzu_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_MISUZU_AIRPLAY, make_misuzu_airplay_prompt, "airplay")

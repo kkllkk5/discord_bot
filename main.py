@@ -188,22 +188,10 @@ async def on_message(message):
                 image_bytes = await attachment.read()
                 images.append((image_bytes, attachment.content_type))
 
-        analyzer_id = constants.ANALYZER_ID_ALL # デフォルトは全員からランダムに選択
+        analyzer_id = constants.ANALYZER_ID_ALL_IDOL # デフォルトは全員からランダムに選択
 
         if images != []:
-            # 各ボタンの表示順，ID,絵文字,ボタンの色を指定
-            IDOLS = [
-                ("全員からランダム",0,constants.ANALYZER_ID_ALL,None,discord.ButtonStyle.secondary),
-                ("咲季",1,constants.ANALYZER_ID_SAKI,client.get_emoji(1525052785333239829),discord.ButtonStyle.primary),
-                ("広",1,constants.ANALYZER_ID_HIRO,client.get_emoji(1525055654686097569),discord.ButtonStyle.primary),
-                ("莉波",1,constants.ANALYZER_ID_RINAMI,client.get_emoji(1525055724181524610),discord.ButtonStyle.primary),
-                ("美鈴",1,constants.ANALYZER_ID_MISUZU,client.get_emoji(1525336748283006996),discord.ButtonStyle.primary),
-                ("咲季(エアプ)",2,constants.ANALYZER_ID_SAKI_AIRPLAY,client.get_emoji(1525052785333239829),discord.ButtonStyle.primary),
-                ("広(エアプ)",2,constants.ANALYZER_ID_HIRO_AIRPLAY,client.get_emoji(1525055654686097569),discord.ButtonStyle.primary),
-                ("莉波(エアプ)",2,constants.ANALYZER_ID_RINAMI_AIRPLAY,client.get_emoji(1525055724181524610),discord.ButtonStyle.primary),
-                ("美鈴(エアプ)",2,constants.ANALYZER_ID_MISUZU_AIRPLAY,client.get_emoji(1525336748283006996),discord.ButtonStyle.primary),
-                ("キャンセル",3,constants.ANALYZER_ID_CANCELLED,None,discord.ButtonStyle.secondary)
-            ]
+            IDOLS = meal_analyze.build_analyzer_options(client.get_emoji)
             view = meal_analyze.AnalyzeView(
                 owner_id=message.author.id,
                 IDOLS=IDOLS
