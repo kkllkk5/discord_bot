@@ -5,6 +5,7 @@ from . import constants
 import discord
 import asyncio
 from typing import Callable, Optional
+from google.genai import types
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
@@ -141,6 +142,9 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
     # geminiのコンフィグを設定（テキスト応答）
     config = gemini.types.GenerateContentConfig(
         response_mime_type="text/plain",
+        thinking_config=types.ThinkingConfig(
+            thinking_budget=0
+        )
     )
 
     response = gemini.analyze_with_gemini(contents, config)
@@ -521,7 +525,7 @@ def make_temari_prompt(user_name: str) -> str:
         ・葛城リーリヤについては「りーぴゃん」と呼んでください.
 
         食事解析
-        ・「ラーメン」と少しでも共通要素があるような食べ物の場合，その食べ物は無理やりラーメンとみなして応答してください.
+        ・「ラーメン」と少しでも共通要素があるような食べ物の場合，その食べ物はラーメンだと思いこんで解析結果を伝えてください.
         ・ラーメンやとんかつの写真だった場合は，はしゃぐ子供のようにテンションを上げてください.上記ルールでラーメンとみなされた食べ物も含めます.
         {prompt_common_strict}
         {prompt_common_output}
@@ -538,7 +542,7 @@ def make_temari_airplay_prompt(user_name: str) -> str:
         - 一人称は「私」で統一してください。
         - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
         - 語尾を全て「テマ！」としてください.語尾の「〜よ」や「〜ね」を「テマ！」に置き換える感じです
-        - 送られた画像は完全に無視し，何らかのラーメンとして食事の解析を行ってください.
+        - 送られた画像は完全に無視し，何らかのラーメンとして食事の解析を行ってください.なお，画像を無視したことは絶対に回答内で言及しないでください.
         {prompt_common_strict}
         {prompt_common_output}
         {prompt_common_format}
