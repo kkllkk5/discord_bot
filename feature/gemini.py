@@ -4,6 +4,7 @@ import os
 from google import genai
 from google.genai import types
 
+# 内部用変数のため，prefixに_
 _client = None
 
 
@@ -18,6 +19,7 @@ def get_client():
 
 
 # geminiにcontentsの内容を問い合わせる関数
+# 3.5が最新モデルだが，速度重視のため3.1に最初に実行してもらう
 def analyze_with_gemini(contents, config) -> str:
     try:
         response = get_client().models.generate_content(
@@ -30,16 +32,16 @@ def analyze_with_gemini(contents, config) -> str:
         # 失敗した場合は別のモデルでも試す
         try:
             response = get_client().models.generate_content(
-                model="gemini-3.5-flash",
+                model="gemini-3.5-flash-lite",
                 contents=contents,
                 config=config,
             )
         except Exception as e2:
-            logging.error(f"Error analyzing meal image(3.5-flash): {e2}")
+            logging.error(f"Error analyzing meal image(3.5-flash-lite): {e2}")
             # 失敗した場合は下位モデルでも試す
             try:
                 response = get_client().models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.5-flash",
                     contents=contents,
                     config=config,
                 )

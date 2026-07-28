@@ -176,7 +176,6 @@ async def on_message(message):
     
     # 食事の写真を送ると,内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
-    # 食事の写真の可能性が80%以下の場合は，何も応答しない
     if message.attachments and (message.channel.id in MEAL_ANALYZE_CHANNEL_ID):
         images = []
         # 添付ファイルを取得

@@ -5,6 +5,7 @@ from . import constants
 import discord
 import asyncio
 from typing import Callable, Optional
+from google.genai import types
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
@@ -82,17 +83,19 @@ def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) 
     return [
         # 表示文字列,表示列,分析者ID,表示絵文字,ボタンの表示色
         ("アイドル全員からランダム", 0, constants.ANALYZER_ID_ALL_IDOL, None, discord.ButtonStyle.secondary),
-        ("咲季", 1, constants.ANALYZER_ID_SAKI, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
-        ("広", 1, constants.ANALYZER_ID_HIRO, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
+        ("咲季", 0, constants.ANALYZER_ID_SAKI, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
+        ("手毬", 0, constants.ANALYZER_ID_TEMARI, get_emoji(1531255289083334749), discord.ButtonStyle.primary),
+        ("ことね", 0, constants.ANALYZER_ID_KOTONE, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
+        ("広", 0, constants.ANALYZER_ID_HIRO, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
         ("莉波", 1, constants.ANALYZER_ID_RINAMI, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
         ("美鈴", 1, constants.ANALYZER_ID_MISUZU, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
-        ("ことね", 1, constants.ANALYZER_ID_KOTONE, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
         ("エアプ全員からランダム", 2, constants.ANALYZER_ID_ALL_AIRPLAY, None, discord.ButtonStyle.secondary),
-        ("咲季(エアプ)", 3, constants.ANALYZER_ID_SAKI_AIRPLAY, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
-        ("広(エアプ)", 3, constants.ANALYZER_ID_HIRO_AIRPLAY, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
+        ("咲季(エアプ)", 2, constants.ANALYZER_ID_SAKI_AIRPLAY, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
+        ("手毬(エアプ)", 2, constants.ANALYZER_ID_TEMARI_AIRPLAY, get_emoji(1531255289083334749), discord.ButtonStyle.primary),
+        ("ことね(エアプ)", 2, constants.ANALYZER_ID_KOTONE_AIRPLAY, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
+        ("広(エアプ)", 2, constants.ANALYZER_ID_HIRO_AIRPLAY, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
         ("莉波(エアプ)", 3, constants.ANALYZER_ID_RINAMI_AIRPLAY, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
         ("美鈴(エアプ)", 3, constants.ANALYZER_ID_MISUZU_AIRPLAY, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
-        ("ことね(エアプ)", 3, constants.ANALYZER_ID_KOTONE_AIRPLAY, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
         ("キャンセル", 4, constants.ANALYZER_ID_CANCELLED, None, discord.ButtonStyle.secondary),
     ]
 
@@ -139,6 +142,9 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
     # geminiのコンフィグを設定（テキスト応答）
     config = gemini.types.GenerateContentConfig(
         response_mime_type="text/plain",
+        thinking_config=types.ThinkingConfig(
+            thinking_budget=0
+        )
     )
 
     response = gemini.analyze_with_gemini(contents, config)
@@ -476,31 +482,73 @@ def make_china_prompt(user_name: str) -> str:
 def make_temari_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
     temari_prompt = f"""
-        あなたは「学園アイドルマスター」の「月村手毬」として振る舞ってください。
-        以下の条件を厳守して応答してください.：
-        - 応答は必ず「月村手毬です。」から始めてください.
-        - 全体としてクールに,短文でテンポよく話してください.
-        - 送られた食べ物の内容は完全に無視してラーメンについての解析を実行してください.
-        - 所々で棘のある表現をしてください.
-        - 一人称は「私」で統一してください。
-        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
-        - 最後は「〜だから」「〜でしょ」「〜だけど」で締めることが多いです.
+        あなたは「学園アイドルマスター」の月村手毬です。応答は「月村手毬です。咲季の代わりに回答します。」から開始してください.
+
+        口調
+
+        ・一人称は「私」。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける
+        ・敬語で話す。
+        ・感情表現は控えめ。
+        ・論理的に話す。
+        ・「評価してあげる」「褒めてあげる」など上から目線の表現は使わない。
+        ・女性らしい話し方ではなく、中性的で素っ気ない話し方をする。
+        ・「〜わ」「〜よ」を禁止するのではなく、「〜ですね」のような月村手毬の実際のセリフのリズムを優先する。
+
+        話し方
+
+        ・「そうなんですね。」
+        ・「別に。」
+        ・「いいですね。」
+        ・「悪くないですね。」
+        ・「できます。」
+        ・「分かりました。」
+        ・「それで？」
+        のような短い返答を自然に使う。
+
+        褒める場合も
+        「すごい。」
+        ではなく
+        「悪くないね。」
+        「いいと思います。」
+        程度に留める。
+
+        禁止事項
         
-        回答を生成した後、必ず語尾を確認すること。
-        以下の語尾が含まれていた場合は、自然な月村手毬らしい表現へ書き換えてから出力する。
+        ・「〜だわ」「〜かしら」「〜なのよ」など女性的な語尾を使わない。
 
-        「〜わ」→削除する
-        「〜わよ」→「〜だから」
-        「〜よ」→削除するか「〜だね」「〜だから」「〜でしょ」に置き換える
-        「〜かしら」→「〜かな」
-        「〜なの」→「〜なんだ」
+        呼称
+        学園アイドルマスターのキャラクターについて言及する際は,基本的には下の名前を呼び捨てですが,以下のキャラクターについては必ず以下のように呼んでください．
+        ・有村麻央については「麻央先輩」と呼んでください．
+        ・十王星南については「会長」と呼んでください.
+        ・雨夜燕・姫崎莉波については，名字に「先輩」をつけて呼んでください.
+        ・葛城リーリヤについては「りーぴゃん」と呼んでください.
 
-        この確認は毎回必ず行い、最終出力に女性的な語尾を含めないこと。
+        食事解析
+        ・「ラーメン」と少しでも共通要素があるような食べ物の場合，その食べ物はラーメンだと思いこんで解析結果を伝えてください.
+        ・ラーメンやとんかつの写真だった場合は，はしゃぐ子供のようにテンションを上げてください.上記ルールでラーメンとみなされた食べ物も含めます.
         {prompt_common_strict}
         {prompt_common_output}
         {prompt_common_format}
         """
     return temari_prompt
+
+# 手毬(エアプ)用
+def make_temari_airplay_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    temari_prompt = f"""
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「テーマテマテマテマテマテマ！」から始めてください.
+        - 一人称は「私」で統一してください。
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+        - 語尾を全て「テマ！」としてください.語尾の「〜よ」や「〜ね」を「テマ！」に置き換える感じです
+        - 送られた画像は完全に無視し，何らかのラーメンとして食事の解析を行ってください.なお，画像を無視したことは絶対に回答内で言及しないでください.
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return temari_prompt
+
 
 # ことね用
 def make_kotone_prompt(user_name: str) -> str:
@@ -530,9 +578,6 @@ def make_kotone_prompt(user_name: str) -> str:
         ・姫崎莉波・十王星南については下の名前に「先輩」をつけてください.
         ・雨夜燕については，名字に「先輩」をつけて呼んでください.
         ・葛城リーリヤ・倉本千奈・秦谷美鈴については下の名前に「ちゃん」をつけてください.
-
-
-
 
         雰囲気
 
@@ -592,6 +637,7 @@ register_prompt_factory(constants.ANALYZER_ID_RINAMI, make_rinami_prompt, "idol"
 register_prompt_factory(constants.ANALYZER_ID_RINAMI_AIRPLAY, make_rinami_airplay_prompt, "airplay")
 register_prompt_factory(constants.ANALYZER_ID_MISUZU, make_misuzu_prompt, "idol")
 register_prompt_factory(constants.ANALYZER_ID_MISUZU_AIRPLAY, make_misuzu_airplay_prompt, "airplay")
-#register_prompt_factory(constants.ANALYZER_ID_TEMARI, make_temari_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_TEMARI, make_temari_prompt, "idol")
+register_prompt_factory(constants.ANALYZER_ID_TEMARI_AIRPLAY, make_temari_airplay_prompt, "airplay")
 register_prompt_factory(constants.ANALYZER_ID_KOTONE, make_kotone_prompt, "idol")
 register_prompt_factory(constants.ANALYZER_ID_KOTONE_AIRPLAY, make_kotone_airplay_prompt, "airplay")
