@@ -5,7 +5,6 @@ from . import constants
 import discord
 import asyncio
 from typing import Callable, Optional
-from google.genai import types
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
@@ -142,9 +141,6 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
     # geminiのコンフィグを設定（テキスト応答）
     config = gemini.types.GenerateContentConfig(
         response_mime_type="text/plain",
-        thinking_config=types.ThinkingConfig(
-            thinking_budget=0
-        )
     )
 
     response = gemini.analyze_with_gemini(contents, config)
