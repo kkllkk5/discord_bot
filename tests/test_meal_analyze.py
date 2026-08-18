@@ -75,7 +75,7 @@ def import_meal_analyze():
     spec.loader.exec_module(module)
     return module
 
-
+# テスト1:prompt_factoryへの登録テスト
 def test_register_and_get_prompt_factories_for_group():
     ma = import_meal_analyze()
 
@@ -97,7 +97,7 @@ def test_register_and_get_prompt_factories_for_group():
     assert callable(g1[0]) and g1[0]('u') == 'A:u'
     assert callable(g2[0]) and g2[0]('u') == 'B:u'
 
-
+# テスト2:無効なanalyzer_idが指定された場合に、idolグループのprompt_factoryが返ることを確認するテスト
 def test_get_prompt_for_analyzer_invalid_id_falls_back():
     ma = import_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
@@ -111,7 +111,7 @@ def test_get_prompt_for_analyzer_invalid_id_falls_back():
     prompt = ma.get_prompt_for_analyzer(9999, 'tester')
     assert prompt.startswith('P1:')
 
-
+# テスト3:analyze_meal_imagesの空配列入力
 def test_analyze_meal_images_empty():
     ma = import_meal_analyze()
     res = ma.analyze_meal_images([], 'user', 0)
