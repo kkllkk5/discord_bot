@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 import types
+import os
 
 
 def _make_dummy_discord():
@@ -60,14 +61,19 @@ def _make_dummy_google_genai_types():
 def import_meal_analyze():
     # inject minimal stub modules so importing the target module succeeds
     sys.modules.setdefault('discord', _make_dummy_discord())
-
     google = types.ModuleType('google')
     genai = _make_dummy_google_genai_types()
 
     google.genai = genai
 
+    # ensure 'feature' package exists so relative imports inside feature/* work
+    if 'feature' not in sys.modules:
+        feature_pkg = types.ModuleType('feature')
+        feature_pkg.__path__ = [os.path.join(os.getcwd(), 'feature')]
+        sys.modules['feature'] = feature_pkg
+
     spec = importlib.util.spec_from_file_location(
-        'feature.meal_analyze', 'feature/meal_analyze.py')
+        'feature.meal_analyze', os.path.join('feature', 'meal_analyze.py'))
     module = importlib.util.module_from_spec(spec)
     sys.modules['feature.meal_analyze'] = module
     sys.modules['google'] = google
