@@ -57,7 +57,7 @@ def fetch_trending_qiita():
     for item in all_items:
         score, hours = calc_score(item)
 
-        # 条件（急上昇らしくする）
+        # 条件
         if hours <= 24 * 2 and item.get("likes_count", 0) >= MIN_LIKES:
             scored.append((score, item))
 
@@ -66,6 +66,10 @@ def fetch_trending_qiita():
 
     # 上位N件出力
     top_items = scored[:TOP_N]
+
+    if not top_items:
+        print("本日は急上昇Qiita記事は見つかりませんでした。")
+        return []
 
     message = "🔥急上昇Qiita記事をお知らせします\n"
 
