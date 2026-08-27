@@ -84,11 +84,15 @@ def _install_python_stubs():
 _install_python_stubs()
 ma = importlib.import_module('feature.meal_analyze')
 
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 # 解析メソッドの中で，geminiに送るパラメータが正当なこと
 =======
 >>>>>>> 0a5e229 (急上昇記事がなかった場合の処理を追加)
+=======
+# 解析メソッドの中で，geminiに送るパラメータが正当なこと
+>>>>>>> d2e4453 (Fix merge markers in integration test)
 def test_meal_analyze_integration_flow(monkeypatch):
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
@@ -109,10 +113,14 @@ def test_meal_analyze_integration_flow(monkeypatch):
     assert result == '解析結果:OK'
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # アナライザービューのボタンフローをテスト
 =======
 
 >>>>>>> 0a5e229 (急上昇記事がなかった場合の処理を追加)
+=======
+# アナライザービューのボタンフローをテスト
+>>>>>>> d2e4453 (Fix merge markers in integration test)
 def test_analyzer_view_button_flow():
     class DummyUser:
         id = 42
