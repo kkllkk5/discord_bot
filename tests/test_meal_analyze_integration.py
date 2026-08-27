@@ -84,11 +84,7 @@ def _install_python_stubs():
 _install_python_stubs()
 ma = importlib.import_module('feature.meal_analyze')
 
-
-<<<<<<< HEAD
-=======
 # 解析メソッドの中で，geminiに送るパラメータが正当なこと
->>>>>>> feature/meal_analyze
 def test_meal_analyze_integration_flow(monkeypatch):
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
@@ -108,11 +104,7 @@ def test_meal_analyze_integration_flow(monkeypatch):
     result = ma.analyze_meal_images([(b'abc123', 'image/png')], 'alice', constants.ANALYZER_ID_SAKI)
     assert result == '解析結果:OK'
 
-<<<<<<< HEAD
-
-=======
 # アナライザービューのボタンフローをテスト
->>>>>>> feature/meal_analyze
 def test_analyzer_view_button_flow():
     class DummyUser:
         id = 42
