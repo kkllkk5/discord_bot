@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 from . import gemini
 from . import constants
 import discord
@@ -9,6 +10,45 @@ from google.genai import types
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
+
+# user_nameをプロンプトインジェクションを防ぐ形に整形する
+# 具体的には，以下のように行う
+# 1. 特定の記号を除去する
+# 2. インジェクション文のパターンを削除する
+# 3.英数文字日本語一部の記号に制限する
+# 4.32文字以内に制限する
+def sanitize_user_name(user_name: str) -> str:
+    """プロンプトに埋め込むユーザー名を安全に整形する。"""
+    if user_name is None:
+        return "ユーザー"
+
+    # 特定の記号を除去する
+    cleaned = str(user_name)
+    cleaned = cleaned.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    cleaned = cleaned.replace("```", "")
+    cleaned = re.sub(r"[\x00-\x1f\x7f]", " ", cleaned)
+
+    # インジェクション文のパターンを削除する
+    for marker in [
+        r"(?i)ignore\s+all\s+previous\s+instructions",
+        r"(?i)you\s+are\s+now",
+        r"(?i)act\s+as\s+if",
+        r"(?i)new\s+instructions?",
+        r"(?i)^\s*(?:system|assistant|user|developer)\s*[:\-]",
+    ]:
+        pattern = re.compile(marker)
+        if pattern.search(cleaned):
+            cleaned = pattern.split(cleaned, maxsplit=1)[0]
+            break
+
+    cleaned = re.sub(r"[^A-Za-z0-9ぁ-んァ-ン一-龯ー_ -]", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return "ユーザー"
+
+    # 32文字に制限する
+    return cleaned[:32]
+
 
 # プロンプト一覧に登録
 # analyzer_id: 分析ID(constantsから取得)
@@ -101,14 +141,16 @@ def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) 
 
 # 利用するプロンプトを選択
 def get_prompt_for_analyzer(analyzer_id: int, user_name: str) -> str:
+    safe_user_name = sanitize_user_name(user_name)
+
     # ALL_IDOLの場合idolグループからランダム
     if analyzer_id == constants.ANALYZER_ID_ALL_IDOL:
         prompt_factories = get_prompt_factories_for_group("idol")
-        return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+        return random.choice([prompt_factory(safe_user_name) for prompt_factory in prompt_factories])
     # ALL_AIRPLAYの場合airplayグループからランダム
     elif analyzer_id == constants.ANALYZER_ID_ALL_AIRPLAY:
         prompt_factories = get_prompt_factories_for_group("airplay")
-        return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+        return random.choice([prompt_factory(safe_user_name) for prompt_factory in prompt_factories])
     # 特定のプロンプトを選択している場合は，そのプロンプトを取得
     else:
         prompt_factory_entry = PROMPT_FACTORY_REGISTRY.get(analyzer_id)
@@ -118,10 +160,10 @@ def get_prompt_for_analyzer(analyzer_id: int, user_name: str) -> str:
                 f"無効なanalyzer_idが指定されました。すべてのアイドルからランダムに選択します.analyzer_id: {analyzer_id}"
             )
             prompt_factories = get_prompt_factories_for_group("idol")
-            return random.choice([prompt_factory(user_name) for prompt_factory in prompt_factories])
+            return random.choice([prompt_factory(safe_user_name) for prompt_factory in prompt_factories])
         else:
             prompt_factory, _ = prompt_factory_entry
-            return prompt_factory(user_name)
+            return prompt_factory(safe_user_name)
 
 
 # 食事の写真を解析する関数
@@ -130,6 +172,7 @@ def analyze_meal_images(images: list[tuple[bytes, str]], user_name: str, analyze
         return ""
 
     # analyzer_idと対応するプロンプトを取得
+    # get_prompt_for_analyzer 側でユーザー名を安全に正規化するため、ここでは再正規化しない
     prompt = get_prompt_for_analyzer(analyzer_id, user_name)
 
     contents = [prompt]
