@@ -177,61 +177,7 @@ async def on_message(message):
     # 食事の写真を送ると,内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
     if message.attachments and (message.channel.id in MEAL_ANALYZE_CHANNEL_ID):
-        images = []
-        # 添付ファイルを取得
-        for attachment in message.attachments:
-            # 添付ファイルが画像かどうかを判定
-            if attachment.content_type and attachment.content_type.startswith("image"):
-                logger.info("画像を受け取りました")
-                # 中身をバイト列として取得
-                image_bytes = await attachment.read()
-                images.append((image_bytes, attachment.content_type))
-
-        analyzer_id = constants.ANALYZER_ID_ALL_IDOL # デフォルトは全員からランダムに選択
-
-        if images != []:
-            IDOLS = meal_analyze.build_analyzer_options(client.get_emoji)
-            view = meal_analyze.AnalyzeView(
-                owner_id=message.author.id,
-                IDOLS=IDOLS
-            )
-
-            # 誰に分析してもらうかどうかを質問
-            control_message = await message.reply(
-                f"{message.author.mention} 誰に分析してもらう？",
-                view=view
-            )
-            view.message = control_message
-            # ボタンが押されるまで待機する
-            await view.event.wait()
-
-            analyzer_id = view.result
-            if analyzer_id is None:
-                # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
-                return
-
-            try:
-                # キャンセルとなった場合は解析を実行しない
-                if analyzer_id == constants.ANALYZER_ID_CANCELLED:
-                    return 
-
-                user_name = message.author.display_name
-                async with meal_analyze_semaphore:
-                    response_text = await asyncio.to_thread(
-                        meal_analyze.analyze_meal_images,
-                        images,
-                        user_name,
-                        analyzer_id
-                    )
-                if (response_text != None) and (response_text != ""):
-                    await message.reply(response_text)
-            finally:
-                if view.message is not None:
-                    await view.message.delete()
-        else:
-            logger.info("画像が見つかりませんでした.")
-
-
+        await handle_meal_analyze(message)
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する
@@ -285,6 +231,64 @@ async def on_message(message):
                 await message.channel.send("対象の楽曲を番号で指定してください.")
             except Exception as e:
                 await message.channel.send("不明なエラーが発生しました.")
+
+# 食事解析
+async def handle_meal_analyze(message):
+    images = []
+    # 添付ファイルを取得
+    for attachment in message.attachments:
+        # 添付ファイルが画像かどうかを判定
+        if attachment.content_type and attachment.content_type.startswith("image"):
+            logger.info("画像を受け取りました")
+            # 中身をバイト列として取得
+            image_bytes = await attachment.read()
+            images.append((image_bytes, attachment.content_type))
+
+    analyzer_id = constants.ANALYZER_ID_ALL_IDOL # デフォルトは全員からランダムに選択
+
+    if images != []:
+        IDOLS = meal_analyze.build_analyzer_options(client.get_emoji)
+        view = meal_analyze.AnalyzeView(
+            owner_id=message.author.id,
+            IDOLS=IDOLS
+        )
+
+        # 誰に分析してもらうかどうかを質問
+        control_message = await message.reply(
+            f"{message.author.mention} 誰に分析してもらう？",
+            view=view
+        )
+        view.message = control_message
+        # ボタンが押されるまで待機する
+        await view.event.wait()
+
+        analyzer_id = view.result
+        if analyzer_id is None:
+            # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
+            return
+
+        try:
+            # キャンセルとなった場合は解析を実行しない
+            if analyzer_id == constants.ANALYZER_ID_CANCELLED:
+                return 
+
+            user_name = message.author.display_name
+            async with meal_analyze_semaphore:
+                response_text = await asyncio.to_thread(
+                    meal_analyze.analyze_meal_images,
+                    images,
+                    user_name,
+                    analyzer_id
+                )
+            if (response_text != None) and (response_text != ""):
+                await message.reply(response_text)
+        finally:
+            if view.message is not None:
+                await view.message.delete()
+    else:
+        logger.info("画像が見つかりませんでした.")
+
+
 
 
 # Botの起動

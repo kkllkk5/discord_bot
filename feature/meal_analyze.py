@@ -6,6 +6,7 @@ from . import constants
 import discord
 import asyncio
 from typing import Callable, Optional
+import os
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
@@ -119,7 +120,7 @@ class AnalyzeView(discord.ui.View):
 
 # Discord上に表示するボタンをコントロールする関数
 def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) -> list[tuple[str, int, int, Optional[discord.Emoji], discord.ButtonStyle]]:
-    return [
+    buttons = [
         # 表示文字列,表示列,分析者ID,表示絵文字,ボタンの表示色
         ("アイドル全員からランダム", 0, constants.ANALYZER_ID_ALL_IDOL, None, discord.ButtonStyle.secondary),
         ("咲季", 0, constants.ANALYZER_ID_SAKI, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
@@ -137,6 +138,13 @@ def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) 
         ("美鈴(エアプ)", 3, constants.ANALYZER_ID_MISUZU_AIRPLAY, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
         ("キャンセル", 4, constants.ANALYZER_ID_CANCELLED, None, discord.ButtonStyle.secondary),
     ]
+
+    # デバッグモード（ローカル起動）の場合のみ，テスト用の解析者を追加
+    if (os.getenv("DEBUG_MODE") == "1"):
+        buttons.append(("テスト用", 4, constants.ANALYZER_ID_TEST, None, discord.ButtonStyle.secondary))
+
+
+    return buttons
 
 # 利用するプロンプトを選択
 def get_prompt_for_analyzer(analyzer_id: int, user_name: str) -> str:
@@ -673,7 +681,7 @@ def make_kotone_prompt(user_name: str) -> str:
 # ことね(エアプ)用
 def make_kotone_airplay_prompt(user_name: str) -> str:
     prompt_common_strict = make_prompt_common_strict(user_name)
-    misuzu_prompt = f"""
+    kotone_prompt = f"""
         以下の条件を厳守して応答してください.：
         - 応答は必ず「コートコトコトコトコトコト！」から始めてください.
         - 一人称は「あたし」で統一してください。
@@ -685,7 +693,21 @@ def make_kotone_airplay_prompt(user_name: str) -> str:
         {prompt_common_format}
         ・**推定価格**:
         """
-    return misuzu_prompt
+    return kotone_prompt
+
+def make_test_prompt(user_name: str) -> str:
+    prompt_common_strict = make_prompt_common_strict(user_name)
+    test_prompt = f"""
+        以下の条件を厳守して応答してください.：
+        - 応答は必ず「マーヨマヨマヨマヨマヨマヨ！」から始めてください.
+        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
+        - 語尾を全て「マヨ!」としてください.
+        {prompt_common_strict}
+        {prompt_common_output}
+        {prompt_common_format}
+        """
+    return test_prompt
+
 
 register_prompt_factory(constants.ANALYZER_ID_SAKI, make_saki_prompt, "idol")
 register_prompt_factory(constants.ANALYZER_ID_SAKI_AIRPLAY, make_saki_airplay_prompt, "airplay")
@@ -699,3 +721,5 @@ register_prompt_factory(constants.ANALYZER_ID_TEMARI, make_temari_prompt, "idol"
 register_prompt_factory(constants.ANALYZER_ID_TEMARI_AIRPLAY, make_temari_airplay_prompt, "airplay")
 register_prompt_factory(constants.ANALYZER_ID_KOTONE, make_kotone_prompt, "idol")
 register_prompt_factory(constants.ANALYZER_ID_KOTONE_AIRPLAY, make_kotone_airplay_prompt, "airplay")
+if (os.getenv("DEBUG_MODE") == "1"):
+        register_prompt_factory(constants.ANALYZER_ID_TEST, make_test_prompt, "idol")
