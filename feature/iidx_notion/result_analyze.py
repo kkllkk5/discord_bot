@@ -170,6 +170,7 @@ def analyze_result_with_gemini(images: list[tuple[bytes, str]]):
         # BPを少なくできた場合はnotionのデータを更新
         elif (miss_count < min_bp):
             update_flag = True
+            notion_bp_update(page_id=page_id,min_bp=miss_count)
             response_text += f"BP:{miss_count} (-{min_bp - miss_count})\n"
         else:
             response_text += f"BP:{miss_count} (+{miss_count - min_bp})\n"
