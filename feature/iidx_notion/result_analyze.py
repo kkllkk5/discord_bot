@@ -7,6 +7,7 @@ import os
 import logging
 import feature.constants
 from pathlib import Path
+import config as cfg
 
 _notion_client = None
 
@@ -19,6 +20,29 @@ def get_notion_client():
             raise RuntimeError('NOTION_TOKEN environment variable is not set')
         _notion_client = Client(auth=token)
     return _notion_client
+
+
+# S乱リザルト解析コマンド
+async def handle_sran_result(message):
+    images = []
+
+    # 2枚以上の同時処理は未対応（現時点では）
+    if len(message.attachments) >= 2:
+        await message.reply("画像は1枚ずつ送ってね!")
+
+    # 添付ファイルを取得
+    for attachment in message.attachments:
+        # 添付ファイルが画像かどうかを判定
+        if attachment.content_type and attachment.content_type.startswith("image"):
+            cfg.logger.info("画像を受け取りました")
+            # 中身をバイト列として取得
+            image_bytes = await attachment.read()
+            images.append((image_bytes, attachment.content_type))
+
+    response_text = analyze_result_with_gemini(images)
+    if (response_text != None) and (response_text != ""):
+        await message.reply(response_text)
+    return
 
 
 # プロンプトの作成関数

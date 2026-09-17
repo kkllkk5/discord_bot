@@ -1,7 +1,12 @@
+import asyncio
 import importlib.util
 import sys
 import types
 import os
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 
 def _make_dummy_discord():
@@ -143,3 +148,40 @@ def test_analyze_meal_images_empty():
     ma = import_meal_analyze()
     res = ma.analyze_meal_images([], 'user', 0)
     assert res == ''
+
+
+def test_handle_meal_analyze_calls_local_analyze_function():
+    ma = import_meal_analyze()
+
+    class FakeView:
+        def __init__(self, owner_id, IDOLS):
+            self.result = 0
+            self.event = asyncio.Event()
+            self.event.set()
+            self.message = None
+
+    class DummyAttachment:
+        content_type = 'image/png'
+
+        async def read(self):
+            return b'img'
+
+    class DummyMessage:
+        def __init__(self):
+            self.author = types.SimpleNamespace(id=42, display_name='tester', mention='@tester')
+            self.attachments = [DummyAttachment()]
+            self.replies = []
+
+        async def reply(self, text, **kwargs):
+            self.replies.append(text)
+
+    ma.AnalyzeView = FakeView
+    ma.analyze_meal_images = lambda images, user_name, analyzer_id: 'OK'
+
+    async def run():
+        message = DummyMessage()
+        await ma.handle_meal_analyze(message, lambda _: None)
+        assert message.replies[0].endswith('誰に分析してもらう？')
+        assert message.replies[-1] == 'OK'
+
+    asyncio.run(run())

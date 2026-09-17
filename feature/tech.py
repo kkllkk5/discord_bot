@@ -69,7 +69,7 @@ def fetch_trending_qiita():
 
     if not top_items:
         print("本日は急上昇Qiita記事は見つかりませんでした。")
-        return []
+        return "本日は急上昇Qiita記事は見つかりませんでした。"
 
     message = "🔥急上昇Qiita記事をお知らせします\n"
 

@@ -1,6 +1,26 @@
 import random
 import logging
+import re
 
+async def handle_dice(message):
+    if re.match('/dice ([0-9]+)+', message.content):
+        try:
+            # 入力から振る回数・ダイスの面数のリストを作成
+            times_list, num_faces_list = list(map(int,message.content.split()[1::2])),list(map(int,message.content.split()[2::2]))
+
+            response = dice_roll(times_list,num_faces_list)
+            await message.reply(response)
+
+        except TypeError as e:
+            logging.error(f"{e}:message:{message.content}")
+            await message.reply("ダイスを振る回数,面数を正しく指定してね！")
+        except ValueError as e:
+            logging.error(f"{e}:message:{message.content}")
+            await message.reply("ダイスを振る回数,面数を正しく指定してね！")
+    # /diceとだけ送った場合は1d100を実行
+    elif message.content == '/dice':
+        response = dice_roll([1],[100])
+        await message.reply(response)
 
 # ダイスロールを行う関数 合計値も出力
 # times→ダイスを振る回数 num_faces→ダイスの面の数

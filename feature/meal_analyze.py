@@ -7,9 +7,67 @@ import discord
 import asyncio
 from typing import Callable, Optional
 import os
+import config as cfg
 
 # 使用するプロンプト一覧
 PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str], str], str]] = {}
+
+
+# 食事解析
+async def handle_meal_analyze(message,get_emoji):
+    images = []
+    # 添付ファイルを取得
+    for attachment in message.attachments:
+        # 添付ファイルが画像かどうかを判定
+        if attachment.content_type and attachment.content_type.startswith("image"):
+            cfg.logger.info("画像を受け取りました")
+            # 中身をバイト列として取得
+            image_bytes = await attachment.read()
+            images.append((image_bytes, attachment.content_type))
+
+    analyzer_id = constants.ANALYZER_ID_ALL_IDOL # デフォルトは全員からランダムに選択
+
+    if images != []:
+        IDOLS = build_analyzer_options(get_emoji)
+        view = AnalyzeView(
+            owner_id=message.author.id,
+            IDOLS=IDOLS
+        )
+
+        # 誰に分析してもらうかどうかを質問
+        control_message = await message.reply(
+            f"{message.author.mention} 誰に分析してもらう？",
+            view=view
+        )
+        view.message = control_message
+        # ボタンが押されるまで待機する
+        await view.event.wait()
+
+        analyzer_id = view.result
+        if analyzer_id is None:
+            # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
+            return
+
+        try:
+            # キャンセルとなった場合は解析を実行しない
+            if analyzer_id == constants.ANALYZER_ID_CANCELLED:
+                return 
+
+            user_name = message.author.display_name
+            async with cfg.meal_analyze_semaphore:
+                response_text = await asyncio.to_thread(
+                    analyze_meal_images,
+                    images,
+                    user_name,
+                    analyzer_id
+                )
+            if (response_text != None) and (response_text != ""):
+                await message.reply(response_text)
+        finally:
+            if view.message is not None:
+                await view.message.delete()
+    else:
+        cfg.logger.info("画像が見つかりませんでした.")
 
 # user_nameをプロンプトインジェクションを防ぐ形に整形する
 # 具体的には，以下のように行う
