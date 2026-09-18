@@ -1,6 +1,6 @@
 import logging
 import os
-
+from google.genai import types
 from google import genai
 
 # 内部用変数のため，prefixに_

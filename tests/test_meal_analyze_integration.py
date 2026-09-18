@@ -8,10 +8,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from feature import constants
 
-
-def _install_python_stubs():
+def _install_dependency_stubs():
     discord_module = types.ModuleType('discord')
     ui_module = types.ModuleType('discord.ui')
 
@@ -71,25 +69,30 @@ def _install_python_stubs():
                 for key, value in kwargs.items():
                     setattr(self, key, value)
 
-        class ThinkingConfig:
-            def __init__(self, **kwargs):
-                self.kwargs = kwargs
-
     genai_module.types = Types
     google_module.genai = genai_module
     sys.modules['google'] = google_module
     sys.modules['google.genai'] = genai_module
 
+    feature_pkg = sys.modules.setdefault('feature', types.ModuleType('feature'))
+    feature_pkg.__path__ = [os.path.join(ROOT, 'feature')]
 
-_install_python_stubs()
+    gemini_stub = types.ModuleType('feature.gemini')
+    gemini_stub.types = Types
+    gemini_stub.analyze_with_gemini = lambda contents, config: 'OK'
+    sys.modules['feature.gemini'] = gemini_stub
+
+
+_install_dependency_stubs()
 ma = importlib.import_module('feature.meal_analyze')
+from feature import constants
 
-# 解析メソッドの中で，geminiに送るパラメータが正当なこと
+
 def test_meal_analyze_integration_flow(monkeypatch):
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
     def prompt_factory(user_name: str) -> str:
-        return f"prompt:{user_name}"
+        return f'prompt:{user_name}'
 
     ma.register_prompt_factory(constants.ANALYZER_ID_SAKI, prompt_factory, 'idol')
 
@@ -104,7 +107,7 @@ def test_meal_analyze_integration_flow(monkeypatch):
     result = ma.analyze_meal_images([(b'abc123', 'image/png')], 'alice', constants.ANALYZER_ID_SAKI)
     assert result == '解析結果:OK'
 
-# アナライザービューのボタンフローをテスト
+
 def test_analyzer_view_button_flow():
     class DummyUser:
         id = 42
