@@ -1,10 +1,8 @@
 import discord
-import json
 import os
 import re
 import feature.iidx as iidx  # 自作パッケージ
 import feature.tech as tech  # 自作パッケージ
-import feature.constants as constants  # 自作パッケージ
 import feature.dice_roll as dice_roll # 自作パッケージ
 import feature.bot_status as bot_status # 自作パッケージ
 import feature.meal_analyze as meal_analyze # 自作パッケージ
@@ -13,8 +11,6 @@ from zoneinfo import ZoneInfo
 from datetime import time,datetime
 import config as cfg
 from discord.ext import tasks
-import logging
-import asyncio
 
 token = os.getenv('TOKEN')
 JST = ZoneInfo("Asia/Tokyo")
@@ -22,10 +18,6 @@ JST = ZoneInfo("Asia/Tokyo")
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-
-def get_result_analyze_module():
-    import feature.iidx_notion.result_analyze as result_analyze_module
-    return result_analyze_module
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     if not message:

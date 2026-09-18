@@ -5,7 +5,6 @@ import feature.iidx_notion.textage
 from notion_client import Client
 import os
 import logging
-import feature.constants
 from pathlib import Path
 import config as cfg
 

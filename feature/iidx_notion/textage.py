@@ -5,7 +5,6 @@ import re
 import html
 from notion_client import Client
 import os
-from pprint import pprint
 import csv 
 import time
 import feature.constants

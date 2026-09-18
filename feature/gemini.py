@@ -2,7 +2,6 @@ import logging
 import os
 
 from google import genai
-from google.genai import types
 
 # 内部用変数のため，prefixに_
 _client = None
