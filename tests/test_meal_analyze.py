@@ -162,6 +162,47 @@ def test_analyze_meal_images_empty():
     assert ma.analyze_meal_images([], 'user', 0) == ''
 
 
+def test_handle_meal_analyze_exits_on_timeout_without_button_press(monkeypatch):
+    ma = load_meal_analyze()
+    monkeypatch.setattr(ma, 'MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS', 0.01)
+
+    class FakeView:
+        def __init__(self, owner_id, IDOLS):
+            self.result = None
+            self.event = asyncio.Event()
+            self.message = None
+
+    class DummyAttachment:
+        content_type = 'image/png'
+
+        async def read(self):
+            return b'img'
+
+    class DummyMessage:
+        def __init__(self):
+            self.author = types.SimpleNamespace(id=42, display_name='tester', mention='@tester')
+            self.attachments = [DummyAttachment()]
+            self.replies = []
+            self.content = "Test Message"
+
+        async def reply(self, text, **kwargs):
+            self.replies.append(text)
+            return self
+
+        async def delete(self):
+            pass
+
+    monkeypatch.setattr(ma, 'AnalyzeView', FakeView)
+
+    async def run():
+        message = DummyMessage()
+        await ma.handle_meal_analyze(message, lambda _: None)
+        assert len(message.replies) == 1
+        assert message.replies[0].endswith('誰に分析してもらう？')
+
+    asyncio.run(run())
+
+
 def test_handle_meal_analyze_calls_local_analyze_function():
     ma = load_meal_analyze()
 
@@ -183,17 +224,25 @@ def test_handle_meal_analyze_calls_local_analyze_function():
             self.author = types.SimpleNamespace(id=42, display_name='tester', mention='@tester')
             self.attachments = [DummyAttachment()]
             self.replies = []
+            self.content = "Test Message"
 
         async def reply(self, text, **kwargs):
             self.replies.append(text)
 
-    ma.AnalyzeView = FakeView
-    ma.analyze_meal_images = lambda images, user_name, analyzer_id: 'OK'
+    monkeypatch = None
+    actual_module = importlib.import_module('feature.meal_analyze.meal_analyze')
+    original_view = actual_module.AnalyzeView
+    actual_module.AnalyzeView = FakeView
+    try:
+        actual_module.analyze_meal_images = lambda images, text, user_name, analyzer_id: 'OK'
 
-    async def run():
-        message = DummyMessage()
-        await ma.handle_meal_analyze(message, lambda _: None)
-        assert message.replies[0].endswith('誰に分析してもらう？')
-        assert message.replies[-1] == 'OK'
+        async def run():
+            message = DummyMessage()
+            await actual_module.handle_meal_analyze(message, lambda _: None)
+            assert message.replies[0].endswith('誰に分析してもらう？')
+            assert message.replies[-1] == 'OK'
 
-    asyncio.run(run())
+        asyncio.run(run())
+    finally:
+        actual_module.AnalyzeView = original_view
+        actual_module.analyze_meal_images = load_meal_analyze().analyze_meal_images

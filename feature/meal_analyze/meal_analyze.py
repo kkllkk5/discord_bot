@@ -7,12 +7,15 @@ import discord
 
 from feature import constants
 from feature import gemini
+from feature.meal_analyze.analyze_view import AnalyzeView
 from feature.meal_analyze.make_prompt import PROMPT_FACTORY_REGISTRY, get_prompt_for_analyzer
+
+MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS = 60
 
 
 # 食事解析
 async def handle_meal_analyze(message, get_emoji):
-    text = getattr(message, "content", "")
+    text = message.content
     images = []
     # 添付ファイルを取得
     for attachment in message.attachments:
@@ -35,8 +38,17 @@ async def handle_meal_analyze(message, get_emoji):
             view=view,
         )
         view.message = control_message
-        # ボタンが押されるまで待機する
-        await view.event.wait()
+
+        try:
+            # ボタンの押下待ちを無期限に待たないようにする
+            await asyncio.wait_for(
+                view.event.wait(),
+                timeout=MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            if getattr(view, "result", None) is None:
+                view.result = constants.ANALYZER_ID_CANCELLED
+            cfg.logger.warning("食事解析のボタン待ちがタイムアウトしました")
 
         analyzer_id = view.result
         if analyzer_id is None:
@@ -64,56 +76,6 @@ async def handle_meal_analyze(message, get_emoji):
                 await view.message.delete()
     else:
         cfg.logger.info("画像が見つかりませんでした.")
-
-
-class AnalyzeView(discord.ui.View):
-    def __init__(self, owner_id, IDOLS):
-        super().__init__(timeout=300)
-        self.result = None
-        self.event = asyncio.Event()
-        self.owner_id = owner_id
-        self.message: Optional[discord.Message] = None
-
-        for label, row, analyzer_id, emoji, style in IDOLS:
-            button = discord.ui.Button(
-                label=label,
-                emoji=emoji,
-                style=style,
-                row=row,
-            )
-
-            async def callback(interaction, analyzer_id=analyzer_id, button=button):
-                # メッセージの送信対象のユーザーしかボタンを押せないようにする
-                if interaction.user.id != self.owner_id:
-                    return
-
-                self.result = analyzer_id
-
-                # ボタンを押した後,全ボタンを無効化
-                button.style = discord.ButtonStyle.success
-                for item in self.children:
-                    if isinstance(item, discord.ui.Button):
-                        item.disabled = True
-
-                await interaction.response.edit_message(content="解析中...", view=self)
-
-                # 待機している処理を再開
-                self.event.set()
-                self.stop()
-
-            button.callback = callback
-            self.add_item(button)
-
-    # タイムアウト時の処理
-    async def on_timeout(self):
-        # ボタンを全部無効化
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
-
-        self.result = constants.ANALYZER_ID_CANCELLED
-        self.event.set()
-        self.stop()
 
 
 # Discord上に表示するボタンをコントロールする関数
