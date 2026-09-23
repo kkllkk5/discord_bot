@@ -89,6 +89,15 @@ def load_meal_analyze():
     return importlib.import_module('feature.meal_analyze')
 
 
+def test_prompt_builder_module_exposes_factory_functions():
+    mp = importlib.import_module('feature.meal_analyze.make_prompt')
+
+    assert hasattr(mp, 'sanitize_user_name')
+    assert hasattr(mp, 'make_prompt_common_output')
+    assert hasattr(mp, 'make_saki_prompt')
+    assert hasattr(mp, 'PROMPT_FACTORY_REGISTRY')
+
+
 def test_register_and_get_prompt_factories_for_group():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()

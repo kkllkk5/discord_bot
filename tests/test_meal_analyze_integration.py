@@ -104,7 +104,7 @@ def test_meal_analyze_integration_flow(monkeypatch):
 
     monkeypatch.setattr(ma.gemini, 'analyze_with_gemini', fake_analyze_with_gemini)
 
-    result = ma.analyze_meal_images([(b'abc123', 'image/png')], 'alice', constants.ANALYZER_ID_SAKI)
+    result = ma.analyze_meal_images([(b'abc123', 'image/png')], '', 'alice', constants.ANALYZER_ID_SAKI)
     assert result == '解析結果:OK'
 
 
