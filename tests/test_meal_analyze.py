@@ -162,27 +162,35 @@ def test_analyze_meal_images_empty():
     assert ma.analyze_meal_images([], 'user', 0) == ''
 
 
-def test_handle_meal_analyze_exits_on_timeout_without_button_press(monkeypatch):
+def test_handle_meal_analyze_skips_analysis_when_cancelled(monkeypatch):
     ma = load_meal_analyze()
-    monkeypatch.setattr(ma, 'MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS', 0.01)
+    actual_module = importlib.import_module(
+        "feature.meal_analyze.meal_analyze"
+    )
 
     class FakeView:
         def __init__(self, owner_id, IDOLS):
-            self.result = None
+            self.result = ma.constants.ANALYZER_ID_CANCELLED
             self.event = asyncio.Event()
+            self.event.set()
             self.message = None
 
     class DummyAttachment:
-        content_type = 'image/png'
+        content_type = "image/png"
 
         async def read(self):
-            return b'img'
+            return b"img"
 
     class DummyMessage:
         def __init__(self):
-            self.author = types.SimpleNamespace(id=42, display_name='tester', mention='@tester')
+            self.author = types.SimpleNamespace(
+                id=42,
+                display_name="tester",
+                mention="@tester",
+            )
             self.attachments = [DummyAttachment()]
             self.replies = []
+            self.deleted = False
             self.content = "Test Message"
 
         async def reply(self, text, **kwargs):
@@ -190,18 +198,36 @@ def test_handle_meal_analyze_exits_on_timeout_without_button_press(monkeypatch):
             return self
 
         async def delete(self):
-            pass
+            self.deleted = True
 
-    monkeypatch.setattr(ma, 'AnalyzeView', FakeView)
+    analyze_called = False
+
+    def fake_analyze_meal_images(*args):
+        nonlocal analyze_called
+        analyze_called = True
+        return "OK"
+
+    monkeypatch.setattr(actual_module, "AnalyzeView", FakeView)
+    monkeypatch.setattr(
+        actual_module,
+        "analyze_meal_images",
+        fake_analyze_meal_images,
+    )
 
     async def run():
         message = DummyMessage()
-        await ma.handle_meal_analyze(message, lambda _: None)
+
+        await actual_module.handle_meal_analyze(
+            message,
+            lambda _: None,
+        )
+
         assert len(message.replies) == 1
-        assert message.replies[0].endswith('誰に分析してもらう？')
+        assert message.replies[0].endswith("誰に分析してもらう？")
+        assert analyze_called is False
+        assert message.deleted is True
 
     asyncio.run(run())
-
 
 def test_handle_meal_analyze_calls_local_analyze_function():
     ma = load_meal_analyze()
