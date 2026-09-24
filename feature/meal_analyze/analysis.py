@@ -20,6 +20,9 @@ def analyze_meal_images(images: list[tuple[bytes, str]], message: str, user_name
             gemini.types.Part.from_bytes(
                 data=image_bytes,
                 mime_type=mime_type,
+                media_resolution={
+                    "level": "media_resolution_medium",
+                },
             )
         )
 

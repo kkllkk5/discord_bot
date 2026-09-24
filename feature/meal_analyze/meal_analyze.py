@@ -76,7 +76,6 @@ async def _analyze_and_reply(message, images: list[tuple[bytes, str]], analyzer_
         return
     await message.reply(response_text)
 
-
 async def _notify_meal_analyze_failure(message):
     """解析失敗を通知し、通知自体の失敗はログに残す。"""
     try:
