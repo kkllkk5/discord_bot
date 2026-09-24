@@ -21,7 +21,7 @@ def get_client():
 # geminiにcontentsの内容を問い合わせる関数
 # 3.5が最新モデルだが，速度重視のため3.1に最初に実行してもらう
 def analyze_with_gemini(contents, config) -> str:
-    models = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+    models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"]
 
     for model in models:
         try:

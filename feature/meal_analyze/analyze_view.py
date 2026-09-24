@@ -12,7 +12,6 @@ class AnalyzeView(discord.ui.View):
         self.result = None
         self.event = asyncio.Event()
         self.owner_id = owner_id
-        self.message: Optional[discord.Message] = None
 
         for label, row, analyzer_id, emoji, style in IDOLS:
             button = discord.ui.Button(

@@ -60,7 +60,7 @@ def _install_dependency_stubs():
     class Types:
         class Part:
             @staticmethod
-            def from_bytes(data, mime_type):
+            def from_bytes(data, mime_type, media_resolution=None, **kwargs):
                 return (data, mime_type)
 
         class GenerateContentConfig:
@@ -91,20 +91,20 @@ from feature import constants
 def test_meal_analyze_integration_flow(monkeypatch):
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def prompt_factory(user_name: str) -> str:
-        return f'prompt:{user_name}'
+    def prompt_factory(user_name: str,text: str) -> str:
+        return f'prompt:{user_name}:{text}'
 
     ma.register_prompt_factory(constants.ANALYZER_ID_SAKI, prompt_factory, 'idol')
 
     def fake_analyze_with_gemini(contents, config):
-        assert contents[0] == 'prompt:alice'
+        assert contents[0] == 'prompt:alice:hello'
         assert contents[1] == (b'abc123', 'image/png')
         assert config.kwargs['response_mime_type'] == 'text/plain'
         return '解析結果:OK'
 
     monkeypatch.setattr(ma.gemini, 'analyze_with_gemini', fake_analyze_with_gemini)
 
-    result = ma.analyze_meal_images([(b'abc123', 'image/png')], '', 'alice', constants.ANALYZER_ID_SAKI)
+    result = ma.analyze_meal_images([(b'abc123', 'image/png')], 'hello', 'alice', constants.ANALYZER_ID_SAKI)
     assert result == '解析結果:OK'
 
 

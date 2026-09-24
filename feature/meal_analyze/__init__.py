@@ -12,7 +12,6 @@ for _name in [
     "AnalyzeView",
     "build_analyzer_options",
     "analyze_meal_images",
-    "MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS",
     "gemini",
     "constants",
     "discord",
@@ -32,7 +31,6 @@ for _name in [
 gemini = _meal_analyze_module.gemini
 constants = _meal_analyze_module.constants
 discord = _meal_analyze_module.discord
-MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS = _meal_analyze_module.MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS
 
 __all__ = [
     "PROMPT_FACTORY_REGISTRY",
@@ -44,7 +42,6 @@ __all__ = [
     "AnalyzeView",
     "build_analyzer_options",
     "analyze_meal_images",
-    "MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS",
     "gemini",
     "constants",
     "discord",

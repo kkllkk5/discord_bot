@@ -60,7 +60,7 @@ def _install_dependency_stubs():
     class Types:
         class Part:
             @staticmethod
-            def from_bytes(data, mime_type):
+            def from_bytes(data, mime_type, media_resolution=None, **kwargs):
                 return (data, mime_type)
 
         class GenerateContentConfig:
@@ -102,11 +102,11 @@ def test_register_and_get_prompt_factories_for_group():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def pf_a(name):
-        return f'A:{name}'
+    def pf_a(name, text=''):
+        return f'A:{name}:{text}'
 
-    def pf_b(name):
-        return f'B:{name}'
+    def pf_b(name, text=''):
+        return f'B:{name}:{text}'
 
     ma.register_prompt_factory(1000, pf_a, 'group1')
     ma.register_prompt_factory(1001, pf_b, 'group2')
@@ -114,29 +114,29 @@ def test_register_and_get_prompt_factories_for_group():
     g1 = ma.get_prompt_factories_for_group('group1')
     g2 = ma.get_prompt_factories_for_group('group2')
 
-    assert g1 and g1[0]('u') == 'A:u'
-    assert g2 and g2[0]('u') == 'B:u'
+    assert g1 and g1[0]('u', 't') == 'A:u:t'
+    assert g2 and g2[0]('u', 't') == 'B:u:t'
 
 
 def test_get_prompt_for_analyzer_invalid_id_falls_back():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def p1(name):
-        return f'P1:{name}'
+    def p1(name, text=''):
+        return f'P1:{name}:{text}'
 
     ma.register_prompt_factory(2000, p1, 'idol')
 
     prompt = ma.get_prompt_for_analyzer(9999, 'tester')
-    assert prompt.startswith('P1:')
+    assert prompt.startswith('P1:tester:')
 
 
 def test_get_prompt_for_analyzer_sanitizes_user_name():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def p1(name):
-        return f'P1:{name}'
+    def p1(name, text=''):
+        return f'P1:{name}:{text}'
 
     ma.register_prompt_factory(2000, p1, 'idol')
 
@@ -159,7 +159,7 @@ def test_sanitize_user_name_removes_injection_markers():
 
 def test_analyze_meal_images_empty():
     ma = load_meal_analyze()
-    assert ma.analyze_meal_images([], 'user', 0) == ''
+    assert ma.analyze_meal_images([], '', 'user', 0) == ''
 
 
 def test_handle_meal_analyze_skips_analysis_when_cancelled(monkeypatch):

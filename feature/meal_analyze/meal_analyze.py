@@ -10,8 +10,6 @@ from feature import gemini
 from feature.meal_analyze.analyze_view import AnalyzeView
 from feature.meal_analyze.make_prompt import PROMPT_FACTORY_REGISTRY, get_prompt_for_analyzer
 
-MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS = 60
-
 
 # 食事解析
 async def handle_meal_analyze(message, get_emoji):
@@ -28,34 +26,25 @@ async def handle_meal_analyze(message, get_emoji):
 
     analyzer_id = constants.ANALYZER_ID_ALL_IDOL
 
-    if images != []:
-        IDOLS = build_analyzer_options(get_emoji)
-        view = AnalyzeView(owner_id=message.author.id, IDOLS=IDOLS)
+    if images:
+        analyzer_options = build_analyzer_options(get_emoji)
+        view = AnalyzeView(owner_id=message.author.id, IDOLS=analyzer_options)
 
         # 誰に分析してもらうかどうかを質問
         control_message = await message.reply(
             f"{message.author.mention} 誰に分析してもらう？",
             view=view,
         )
-        view.message = control_message
 
         try:
             # ボタンの押下待ちを無期限に待たないようにする
-            await asyncio.wait_for(
-                view.event.wait(),
-                timeout=MEAL_ANALYZE_SELECTION_TIMEOUT_SECONDS,
-            )
-        except asyncio.TimeoutError:
-            if getattr(view, "result", None) is None:
-                view.result = constants.ANALYZER_ID_CANCELLED
-            cfg.logger.warning("食事解析のボタン待ちがタイムアウトしました")
+            await view.event.wait()
 
-        analyzer_id = view.result
-        if analyzer_id is None:
-            # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
-            return
-
-        try:
+            analyzer_id = view.result
+            if analyzer_id is None:
+                # 想定外の状態: analyzer_idが設定されていない場合は処理を中断
+                return
+        
             # キャンセルとなった場合は解析を実行しない
             if analyzer_id == constants.ANALYZER_ID_CANCELLED:
                 return
@@ -69,11 +58,11 @@ async def handle_meal_analyze(message, get_emoji):
                     user_name,
                     analyzer_id,
                 )
-            if response_text is not None and response_text != "":
+            if (response_text is not None) and (response_text != ""):
                 await message.reply(response_text)
         finally:
-            if view.message is not None:
-                await view.message.delete()
+            if control_message is not None:
+                await control_message.delete()
     else:
         cfg.logger.info("画像が見つかりませんでした.")
 
@@ -107,21 +96,9 @@ def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) 
 
 
 # 食事の写真を解析する関数
-def analyze_meal_images(images: list[tuple[bytes, str]], *args) -> str:
+def analyze_meal_images(images: list[tuple[bytes, str]], text:str, user_name:str, analyzer_id:int) -> str:
     if not images:
         return ""
-
-    if len(args) == 3:
-        text, user_name, analyzer_id = args
-    elif len(args) == 2:
-        user_name, analyzer_id = args
-        text = ""
-    elif len(args) == 1:
-        analyzer_id = args[0]
-        user_name = ""
-        text = ""
-    else:
-        raise TypeError("analyze_meal_images requires (images, text, user_name, analyzer_id) or compatible variants")
 
     # analyzer_idと対応するプロンプトを取得
     # get_prompt_for_analyzer 側でユーザー名を安全に正規化するため、ここでは再正規化しない

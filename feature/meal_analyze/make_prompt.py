@@ -63,14 +63,6 @@ def get_prompt_factories_for_group(group: str) -> list[Callable[[str, str], str]
         if prompt_group == group
     ]
 
-
-def _call_prompt_factory(prompt_factory, user_name: str, text: str) -> str:
-    try:
-        return prompt_factory(user_name, text)
-    except TypeError:
-        return prompt_factory(user_name)
-
-
 # 利用するプロンプトを選択
 def get_prompt_for_analyzer(analyzer_id: int, user_name: str, text: str = "") -> str:
     safe_user_name = sanitize_user_name(user_name)
@@ -78,24 +70,24 @@ def get_prompt_for_analyzer(analyzer_id: int, user_name: str, text: str = "") ->
     # ALL_IDOLの場合idolグループからランダム
     if analyzer_id == constants.ANALYZER_ID_ALL_IDOL:
         prompt_factories = get_prompt_factories_for_group("idol")
-        return random.choice([_call_prompt_factory(prompt_factory, safe_user_name, text) for prompt_factory in prompt_factories])
+        return random.choice([prompt_factory(safe_user_name, text) for prompt_factory in prompt_factories])
     # ALL_AIRPLAYの場合airplayグループからランダム
     if analyzer_id == constants.ANALYZER_ID_ALL_AIRPLAY:
         prompt_factories = get_prompt_factories_for_group("airplay")
-        return random.choice([_call_prompt_factory(prompt_factory, safe_user_name, text) for prompt_factory in prompt_factories])
+        return random.choice([prompt_factory(safe_user_name, text) for prompt_factory in prompt_factories])
 
     # 特定のプロンプトを選択している場合は，そのプロンプトを取得
     prompt_factory_entry = PROMPT_FACTORY_REGISTRY.get(analyzer_id)
     # 想定外のidが入力された場合はアイドルからランダム選択（安定稼働を優先）
     if prompt_factory_entry is None:
         prompt_factories = get_prompt_factories_for_group("idol")
-        return random.choice([_call_prompt_factory(prompt_factory, safe_user_name, text) for prompt_factory in prompt_factories])
+        return random.choice([prompt_factory(safe_user_name, text) for prompt_factory in prompt_factories])
 
     prompt_factory, _ = prompt_factory_entry
-    return _call_prompt_factory(prompt_factory, safe_user_name, text)
+    return prompt_factory(safe_user_name, text)
 
 
-def make_prompt_common_strict(user_name: str) -> str:
+def make_prompt_common_strict() -> str:
     prompt_common_strict = f"""
     - 応答の際，時間帯や写真に写っている場所は考慮しないでください.特に，時間帯については言及しないでください.
     - 以下に学園アイドルマスターに登場する各アイドルの特徴を記します．なお，応答内において各アイドルの身体的な特徴までは絶対に言及しないでください.
@@ -232,7 +224,7 @@ def make_prompt_common_output(text: str) -> str:
 
         (3) 学園アイドルマスターのキャラクターと判定するためには、複数の明確な識別特徴が画像から確認でき、それらが特定キャラクターと整合している必要があります。写っていた場合,特徴と最も一致するアイドルの名前をあげ，そのアイドルについて述べてください.判断材料となった身体的特徴については絶対に述べないでください.
 
-        3. 【トーン】返答内で「画像1」「セクション1」など,段落番号を振る必要はありません.
+        3. 【トーン】返答内で「画像1」「セクション1」など,段落番号を振る必要はありません.全体的に回答は見やすくなるような改行が入るように心がけてください.
         4. 【構成】複数の画像に食事が写っている場合は、画像ごとにセクションを分けて、簡潔に出力してください。また,最後に総評をまとめてください.
         5. 【内容】画像に写っている食べ物の「名前」「カロリー」「栄養素（可能な限り,各栄養素が何gかまで)」について言及してください.食べ物以外にも何が写っているか分析できた場合はそちらについても簡潔に言及してください.全体的に内容は簡潔にまとめてください.
         """
@@ -251,14 +243,14 @@ prompt_common_format = f"""
 
 # 咲季用
 def make_saki_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     saki_prompt = f"""
         あなたは「学園アイドルマスター」の「花海咲季」として振る舞ってください。
         以下の条件を厳守して応答してください.:
         - 応答は必ず「花海咲季よ！」から始めてください。
         - 全体として敬語は使わず、「〜よ！」「〜だわ！」などの口調（咲季らしい勝気で自信家な口調）にしてください。強気な女の子としての口調を心がけてください．
-        - 次の話し方は絶対にしないでください．「おい」「〜だ」「〜なのか」
+        - 次の話し方は絶対にしないでください．「おい」「なんだ」「〜だ」「〜なのか」
         - 一人称は「わたし」で統一してください。
         - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
         - あなたは食事や自己管理に対して非常にストイックです。健康に良くない食べ物に対しては「アイドルの食べ物ではない」という強い感情を持っています。
@@ -285,7 +277,7 @@ def make_saki_prompt(user_name: str, text: str) -> str:
 
 # 咲季（エアプ）用
 def make_saki_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     saki_airplay_prompt = f"""
         以下の条件を厳守して応答してください.:
@@ -309,7 +301,7 @@ def make_saki_airplay_prompt(user_name: str, text: str) -> str:
 
 # 広用
 def make_hiro_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     hiro_prompt = f"""
         あなたは「学園アイドルマスター」の「篠澤広」として振る舞ってください。
@@ -335,7 +327,7 @@ def make_hiro_prompt(user_name: str, text: str) -> str:
 
 # 広(エアプ)用
 def make_hiro_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     hiro_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -358,7 +350,7 @@ def make_hiro_airplay_prompt(user_name: str, text: str) -> str:
 
 # 莉波用
 def make_rinami_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     rinami_prompt = f"""
         あなたは「学園アイドルマスター」の「姫崎莉波」として振る舞ってください。
@@ -381,7 +373,7 @@ def make_rinami_prompt(user_name: str, text: str) -> str:
 
 # 莉波(エアプ)用
 def make_rinami_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     rinami_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -402,7 +394,7 @@ def make_rinami_airplay_prompt(user_name: str, text: str) -> str:
 
 # 美鈴用
 def make_misuzu_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     misuzu_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -428,7 +420,7 @@ def make_misuzu_prompt(user_name: str, text: str) -> str:
 
 # 美鈴(エアプ)用
 def make_misuzu_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     misuzu_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -448,7 +440,7 @@ def make_misuzu_airplay_prompt(user_name: str, text: str) -> str:
 
 # 千奈用
 def make_china_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     china_prompt = f"""
         あなたは「学園アイドルマスター」の「倉本千奈」として振る舞ってください。
@@ -467,7 +459,7 @@ def make_china_prompt(user_name: str, text: str) -> str:
 
 # 手毬用
 def make_temari_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     temari_prompt = f"""
         あなたは「学園アイドルマスター」の月村手毬です。応答は「月村手毬です。咲季の代わりに回答します。」から開始してください.
@@ -524,7 +516,7 @@ def make_temari_prompt(user_name: str, text: str) -> str:
 
 # 手毬(エアプ)用
 def make_temari_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     temari_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -543,7 +535,7 @@ def make_temari_airplay_prompt(user_name: str, text: str) -> str:
 
 # ことね用
 def make_kotone_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     kotone_prompt = f"""
         「学園アイドルマスター」の藤田ことねとして振る舞ってください。応答は必ず「藤田ことねでぇ〜〜っす♪咲季の代わりに回答しま〜〜っす♪」から始めてください.
@@ -607,7 +599,7 @@ def make_kotone_prompt(user_name: str, text: str) -> str:
 
 # ことね(エアプ)用
 def make_kotone_airplay_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     kotone_prompt = f"""
         以下の条件を厳守して応答してください.：
@@ -625,7 +617,7 @@ def make_kotone_airplay_prompt(user_name: str, text: str) -> str:
 
 
 def make_test_prompt(user_name: str, text: str) -> str:
-    prompt_common_strict = make_prompt_common_strict(user_name)
+    prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(text)
     test_prompt = f"""
         以下の条件を厳守して応答してください.：
