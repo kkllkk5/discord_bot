@@ -60,7 +60,7 @@ def _install_dependency_stubs():
     class Types:
         class Part:
             @staticmethod
-            def from_bytes(data, mime_type):
+            def from_bytes(data, mime_type, media_resolution=None, **kwargs):
                 return (data, mime_type)
 
         class GenerateContentConfig:
@@ -89,15 +89,24 @@ def load_meal_analyze():
     return importlib.import_module('feature.meal_analyze')
 
 
+def test_prompt_builder_module_exposes_factory_functions():
+    mp = importlib.import_module('feature.meal_analyze.make_prompt')
+
+    assert hasattr(mp, 'sanitize_user_name')
+    assert hasattr(mp, 'make_prompt_common_output')
+    assert hasattr(mp, 'make_saki_prompt')
+    assert hasattr(mp, 'PROMPT_FACTORY_REGISTRY')
+
+
 def test_register_and_get_prompt_factories_for_group():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def pf_a(name):
-        return f'A:{name}'
+    def pf_a(name, text=''):
+        return f'A:{name}:{text}'
 
-    def pf_b(name):
-        return f'B:{name}'
+    def pf_b(name, text=''):
+        return f'B:{name}:{text}'
 
     ma.register_prompt_factory(1000, pf_a, 'group1')
     ma.register_prompt_factory(1001, pf_b, 'group2')
@@ -105,29 +114,29 @@ def test_register_and_get_prompt_factories_for_group():
     g1 = ma.get_prompt_factories_for_group('group1')
     g2 = ma.get_prompt_factories_for_group('group2')
 
-    assert g1 and g1[0]('u') == 'A:u'
-    assert g2 and g2[0]('u') == 'B:u'
+    assert g1 and g1[0]('u', 't') == 'A:u:t'
+    assert g2 and g2[0]('u', 't') == 'B:u:t'
 
 
 def test_get_prompt_for_analyzer_invalid_id_falls_back():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def p1(name):
-        return f'P1:{name}'
+    def p1(name, text=''):
+        return f'P1:{name}:{text}'
 
     ma.register_prompt_factory(2000, p1, 'idol')
 
     prompt = ma.get_prompt_for_analyzer(9999, 'tester')
-    assert prompt.startswith('P1:')
+    assert prompt.startswith('P1:tester:')
 
 
 def test_get_prompt_for_analyzer_sanitizes_user_name():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
-    def p1(name):
-        return f'P1:{name}'
+    def p1(name, text=''):
+        return f'P1:{name}:{text}'
 
     ma.register_prompt_factory(2000, p1, 'idol')
 
@@ -150,8 +159,75 @@ def test_sanitize_user_name_removes_injection_markers():
 
 def test_analyze_meal_images_empty():
     ma = load_meal_analyze()
-    assert ma.analyze_meal_images([], 'user', 0) == ''
+    assert ma.analyze_meal_images([], '', 'user', 0) == ''
 
+
+def test_handle_meal_analyze_skips_analysis_when_cancelled(monkeypatch):
+    ma = load_meal_analyze()
+    actual_module = importlib.import_module(
+        "feature.meal_analyze.meal_analyze"
+    )
+
+    class FakeView:
+        def __init__(self, owner_id, IDOLS):
+            self.result = ma.constants.ANALYZER_ID_CANCELLED
+            self.event = asyncio.Event()
+            self.event.set()
+            self.message = None
+
+    class DummyAttachment:
+        content_type = "image/png"
+
+        async def read(self):
+            return b"img"
+
+    class DummyMessage:
+        def __init__(self):
+            self.author = types.SimpleNamespace(
+                id=42,
+                display_name="tester",
+                mention="@tester",
+            )
+            self.attachments = [DummyAttachment()]
+            self.replies = []
+            self.deleted = False
+            self.content = "Test Message"
+
+        async def reply(self, text, **kwargs):
+            self.replies.append(text)
+            return self
+
+        async def delete(self):
+            self.deleted = True
+
+    analyze_called = False
+
+    def fake_analyze_meal_images(*args):
+        nonlocal analyze_called
+        analyze_called = True
+        return "OK"
+
+    monkeypatch.setattr(actual_module, "AnalyzeView", FakeView)
+    monkeypatch.setattr(
+        actual_module,
+        "analyze_meal_images",
+        fake_analyze_meal_images,
+    )
+
+    async def run():
+        message = DummyMessage()
+
+        await actual_module.handle_meal_analyze(
+            message,
+            lambda _: None,
+        )
+
+        assert len(message.replies) == 1
+        assert message.replies[0].endswith("誰に分析してもらう？")
+        assert analyze_called is False
+        assert message.deleted is True
+
+    asyncio.run(run())
 
 def test_handle_meal_analyze_calls_local_analyze_function():
     ma = load_meal_analyze()
@@ -174,17 +250,25 @@ def test_handle_meal_analyze_calls_local_analyze_function():
             self.author = types.SimpleNamespace(id=42, display_name='tester', mention='@tester')
             self.attachments = [DummyAttachment()]
             self.replies = []
+            self.content = "Test Message"
 
         async def reply(self, text, **kwargs):
             self.replies.append(text)
 
-    ma.AnalyzeView = FakeView
-    ma.analyze_meal_images = lambda images, user_name, analyzer_id: 'OK'
+    monkeypatch = None
+    actual_module = importlib.import_module('feature.meal_analyze.meal_analyze')
+    original_view = actual_module.AnalyzeView
+    actual_module.AnalyzeView = FakeView
+    try:
+        actual_module.analyze_meal_images = lambda images, text, user_name, analyzer_id: 'OK'
 
-    async def run():
-        message = DummyMessage()
-        await ma.handle_meal_analyze(message, lambda _: None)
-        assert message.replies[0].endswith('誰に分析してもらう？')
-        assert message.replies[-1] == 'OK'
+        async def run():
+            message = DummyMessage()
+            await actual_module.handle_meal_analyze(message, lambda _: None)
+            assert message.replies[0].endswith('誰に分析してもらう？')
+            assert message.replies[-1] == 'OK'
 
-    asyncio.run(run())
+        asyncio.run(run())
+    finally:
+        actual_module.AnalyzeView = original_view
+        actual_module.analyze_meal_images = load_meal_analyze().analyze_meal_images
