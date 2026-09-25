@@ -13,7 +13,7 @@ from feature.meal_analyze.make_prompt import PROMPT_FACTORY_REGISTRY, get_prompt
 
 # 食事解析
 async def handle_meal_analyze(message, get_emoji):
-    text = message.content
+    user_message = message.content
     images = []
     # 添付ファイルを取得
     for attachment in message.attachments:
@@ -54,7 +54,7 @@ async def handle_meal_analyze(message, get_emoji):
                 response_text = await asyncio.to_thread(
                     analyze_meal_images,
                     images,
-                    text,
+                    user_message,
                     user_name,
                     analyzer_id,
                 )
@@ -96,13 +96,13 @@ def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) 
 
 
 # 食事の写真を解析する関数
-def analyze_meal_images(images: list[tuple[bytes, str]], text:str, user_name:str, analyzer_id:int) -> str:
+def analyze_meal_images(images: list[tuple[bytes, str]], message:str, user_name:str, analyzer_id:int) -> str:
     if not images:
         return ""
 
     # analyzer_idと対応するプロンプトを取得
     # get_prompt_for_analyzer 側でユーザー名を安全に正規化するため、ここでは再正規化しない
-    prompt = get_prompt_for_analyzer(analyzer_id, user_name, text)
+    prompt = get_prompt_for_analyzer(analyzer_id, user_name, message)
     contents = [prompt]
 
     # プロンプトに添付写真を追加
