@@ -111,9 +111,6 @@ def analyze_meal_images(images: list[tuple[bytes, str]], text:str, user_name:str
             gemini.types.Part.from_bytes(
                 data=image_bytes, 
                 mime_type=mime_type,
-                media_resolution={
-                    "level": "media_resolution_medium",  # 低解像度で送信することで、geminiの処理速度を向上させる
-                },
                 )
             )
 
