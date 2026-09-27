@@ -72,6 +72,27 @@
 
 ---
 
+## Dashboard prototype
+
+既存のHTTPサーバーと一緒に起動される、読み取り専用のDashboardです。Botの起動・停止やDiscordへの操作は行いません。
+
+`python server.py`（または既存の `run_all.sh`）でサーバーを起動後、ブラウザで次を開きます。
+
+- `http://localhost:8080/dashboard`
+
+プロトタイプにはOverview、Bot status、Features、Logsを表示します。現段階ではDiscordクライアントの稼働状態や実ログには接続していないため、Bot statusは「未連携」と明示されます。
+
+APIは以下で、すべて読み取り専用です。
+
+- `/api/dashboard/overview`
+- `/api/dashboard/bot-status`
+- `/api/dashboard/features`
+- `/api/dashboard/logs`
+
+テストは `pytest tests/test_dashboard_api.py` で実行できます。
+
+---
+
 ## 備考
 - 食事解析は、画像が食事である可能性が低い場合は解析を行わない仕様です。
 - リザルト解析は、実際の画面構成に合わせた画像の読み取り精度に依存します。

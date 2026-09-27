@@ -8,16 +8,18 @@ import asyncio
 import schedule
 import time
 import requests
+from dashboard import router as dashboard_router
 
 dotenv.load_dotenv()
 
 app = FastAPI()
+app.include_router(dashboard_router)
 port = int(os.environ.get("PORT", 8080))
 HEALTH_CHECK_URL = os.environ.get("HEALTH_CHECK_URL","http://0.0.0.0:"+str(port))
 
 @app.get("/")
 async def root():
-    return {"message": "Server is Online."}
+    return {"message": "Server is Online.", "dashboard": "/dashboard"}
 
 
 def start():
