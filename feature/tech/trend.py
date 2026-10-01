@@ -80,10 +80,3 @@ def fetch_trending_qiita():
         message += f"   🔗 {item['url']}\n\n"
 
     return message
-
-
-# -----------------------
-# 実行
-# -----------------------
-if __name__ == "__main__":
-    fetch_trending_qiita()
