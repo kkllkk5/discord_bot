@@ -35,15 +35,6 @@ async def scheduled_tech_trend_task():
         message = tech.fetch_trending_qiita()
         await send_scheduled_message(cfg.TECH_TREND_CHANNEL_ID, message)
 
-# 技術ニュースの取得を毎日午前8時に実行
-# (停止中)
-'''
-@tasks.loop(time=time(hour=8, tzinfo=ZoneInfo("Asia/Tokyo")))
-async def scheduled_tech_news_task():
-    message = news.main()
-    await send_scheduled_message(cfg.TECH_NEWS_CHANNEL_ID, message)
-'''
-
 # 4,5,20時にアクティビティを更新
 @tasks.loop(time=[
     time(hour=4, tzinfo=JST),
