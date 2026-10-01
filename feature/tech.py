@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime, timezone
+import config as cfg
 
 def parse_iso8601(dt_str):
     # ISO 8601 をパースして UTC に変換して返す（Qiita の +09:00 などを正しく扱う）
@@ -36,7 +37,7 @@ def fetch_trending_qiita():
         items = res.json()
         all_items.extend(items)
 
-    print(f"取得件数: {len(all_items)}")
+    cfg.logger.info(f"取得件数: {len(all_items)}")
 
     # スコア計算関数（急上昇）
     def calc_score(item):
@@ -68,7 +69,7 @@ def fetch_trending_qiita():
     top_items = scored[:TOP_N]
 
     if not top_items:
-        print("本日は急上昇Qiita記事は見つかりませんでした。")
+        cfg.logger.info("本日は急上昇Qiita記事は見つかりませんでした。")
         return "本日は急上昇Qiita記事は見つかりませんでした。"
 
     message = "🔥急上昇Qiita記事をお知らせします\n"
