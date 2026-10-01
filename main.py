@@ -3,9 +3,9 @@ import os
 import re
 import feature.iidx as iidx  # 自作パッケージ
 import feature.tech as tech  # 自作パッケージ
-import feature.dice_roll as dice_roll # 自作パッケージ
-import feature.bot_status as bot_status # 自作パッケージ
-import feature.meal_analyze as meal_analyze # 自作パッケージ
+from feature.bot_status.presence import set_presence
+from feature.dice_roll.commands import handle_dice
+from feature.meal_analyze.meal_analyze import handle_meal_analyze
 import feature.iidx_notion.result_analyze as result_analyze # 自作パッケージ
 from zoneinfo import ZoneInfo
 from datetime import time,datetime
@@ -42,7 +42,7 @@ async def scheduled_tech_trend_task():
     time(hour=20, tzinfo=JST),
 ])
 async def update_presence():
-    await bot_status.set_presence(client)
+    await set_presence(client)
 
 # 起動時に動作する処理
 @client.event
@@ -50,7 +50,7 @@ async def on_ready():
     # 起動したらログイン通知が表示される
     cfg.logger.info('ログインしました')
     # アクティビティを更新
-    await bot_status.set_presence(client)
+    await set_presence(client)
     # スケジューリングをセット
     if not scheduled_tech_trend_task.is_running():
         scheduled_tech_trend_task.start()
@@ -95,7 +95,7 @@ async def on_message(message):
     # 例: 「/dice 1 100」と送ると，1d100を実行
     # 「/dice 1 4 1 6」と送ると，1d4+1d6を実行
     if message.content.startswith('/dice'):
-        await dice_roll.handle_dice(message)
+        await handle_dice(message)
 
     # 「S乱リザルト」のチャンネルに画像が投稿された場合，その内容を解析しNotionのDBの内容を更新する
     if message.attachments and (message.channel.id == cfg.SRAN_RESULT_CHANNNEL_ID):
@@ -104,7 +104,7 @@ async def on_message(message):
     # 食事の写真を送ると,内容をAIが解析
     # 複数送った場合は，まとめて解析してくれる
     if message.attachments and (message.channel.id in cfg.MEAL_ANALYZE_CHANNEL_ID):
-        await meal_analyze.handle_meal_analyze(message,client.get_emoji)
+        await handle_meal_analyze(message,client.get_emoji)
 
     # 「/dp_level {曲名の一部}」と送ると，指定した曲のDP非公式難易度を答える
     # 曲名の一部から候補を複数提示し，その中から番号を指定して指定楽曲を特定する

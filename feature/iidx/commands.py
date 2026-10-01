@@ -2,6 +2,9 @@ import json
 import csv
 import random
 import re
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent
 
 # 課題曲生成コマンド
 async def handle_iidx_practice_music(message):
@@ -32,9 +35,9 @@ def csvToList(csvName):
 # song_num:課題曲の曲数
 def make_practice_music(level, song_num):
     if level == 11:
-        music_list = csvToList('songlist_11.csv')
+        music_list = csvToList(DATA_DIR / 'songlist_11.csv')
     elif level == 12:
-        music_list = csvToList('songlist_12.csv')
+        music_list = csvToList(DATA_DIR / 'songlist_12.csv')
     else:
         raise Exception("課題曲生成は現在レベル11,12のみ対応しています")
     return random.choices(music_list, k=song_num)
@@ -99,7 +102,7 @@ def search_songname_for_dp(name_parts):
     candidate_list = []
     # DP楽曲リストから，曲名を取得
     # (レベル情報も同時に取得されるが，今回は利用しない)
-    music_list = csvToList('dp_level.csv')
+    music_list = csvToList(DATA_DIR / 'dp_level.csv')
     for music_info in music_list:
         music_name = music_info[0]
         music_level = music_info[1]
