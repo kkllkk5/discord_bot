@@ -72,24 +72,13 @@
 
 ---
 
-## Dashboard prototype
+## Bot管理ダッシュボード
 
-既存のHTTPサーバーと一緒に起動される、読み取り専用のDashboardです。Botの起動・停止やDiscordへの操作は行いません。
+`http://localhost:8080/dashboard/` で、実Botの状態・ログ閲覧、機能のON/OFF、プレゼンス変更を操作できます。
 
-`python server.py`（または既存の `run_all.sh`）でサーバーを起動後、ブラウザで次を開きます。
+32文字以上のランダムな管理用 `DASHBOARD_TOKEN` を環境変数または `.env` に設定し、既存の `sh run_all.sh` で起動してください。BotとWebサーバーは同じSQLiteファイルで連携します。管理操作は確認後にのみ実行します。
 
-- `http://localhost:8080/dashboard`
-
-プロトタイプにはOverview、Bot status、Features、Logsを表示します。現段階ではDiscordクライアントの稼働状態や実ログには接続していないため、Bot statusは「未連携」と明示されます。
-
-APIは以下で、すべて読み取り専用です。
-
-- `/api/dashboard/overview`
-- `/api/dashboard/bot-status`
-- `/api/dashboard/features`
-- `/api/dashboard/logs`
-
-テストは `pytest tests/test_dashboard_api.py` で実行できます。
+起動手順・設定・連携構成・テストは [dashboard/README.md](dashboard/README.md) を参照してください。
 
 ---
 

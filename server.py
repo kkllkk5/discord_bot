@@ -8,7 +8,8 @@ import asyncio
 import schedule
 import time
 import requests
-from dashboard import router as dashboard_router
+from dashboard.web import router as dashboard_router
+from dashboard.runtime import install_log_handler
 
 dotenv.load_dotenv()
 
@@ -23,6 +24,7 @@ async def root():
 
 
 def start():
+    install_log_handler()
     asyncio.set_event_loop(asyncio.new_event_loop())
     uvicorn.run(app, host="0.0.0.0", port=port)
 
