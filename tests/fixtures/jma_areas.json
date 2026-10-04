@@ -1,0 +1,252 @@
+{
+  "offices": {
+    "130000": {
+      "name": "東京都",
+      "enName": "Tokyo",
+      "officeName": "気象庁",
+      "parent": "010300",
+      "children": [
+        "130010",
+        "130020",
+        "130030",
+        "130040"
+      ]
+    },
+    "140000": {
+      "name": "神奈川県",
+      "enName": "Kanagawa",
+      "officeName": "横浜地方気象台",
+      "parent": "010300",
+      "children": [
+        "140010",
+        "140020"
+      ]
+    },
+    "270000": {
+      "name": "大阪府",
+      "enName": "Osaka",
+      "officeName": "大阪管区気象台",
+      "parent": "010600",
+      "children": [
+        "270000"
+      ]
+    },
+    "260000": {
+      "name": "京都府",
+      "enName": "Kyoto",
+      "officeName": "京都地方気象台",
+      "parent": "010600",
+      "children": [
+        "260010",
+        "260020"
+      ]
+    }
+  },
+  "class10s": {
+    "130010": {
+      "name": "東京地方",
+      "enName": "Tokyo Region",
+      "parent": "130000",
+      "children": [
+        "130011",
+        "130012",
+        "130013",
+        "130014",
+        "130015"
+      ]
+    },
+    "130020": {
+      "name": "伊豆諸島北部",
+      "enName": "Northern Izu Islands",
+      "parent": "130000",
+      "children": [
+        "130021",
+        "130022"
+      ]
+    },
+    "130030": {
+      "name": "伊豆諸島南部",
+      "enName": "Southern Izu Islands",
+      "parent": "130000",
+      "children": [
+        "130031",
+        "130032"
+      ]
+    },
+    "130040": {
+      "name": "小笠原諸島",
+      "enName": "Ogasawara Islands",
+      "parent": "130000",
+      "children": [
+        "130040"
+      ]
+    },
+    "140010": {
+      "name": "東部",
+      "enName": "Eastern Region",
+      "parent": "140000",
+      "children": [
+        "140011",
+        "140012",
+        "140013"
+      ]
+    },
+    "140020": {
+      "name": "西部",
+      "enName": "Western Region",
+      "parent": "140000",
+      "children": [
+        "140021",
+        "140022",
+        "140023",
+        "140024"
+      ]
+    },
+    "270000": {
+      "name": "大阪府",
+      "enName": "Osaka Prefecture",
+      "parent": "270000",
+      "children": [
+        "270001",
+        "270002",
+        "270003",
+        "270004",
+        "270005"
+      ]
+    },
+    "260010": {
+      "name": "南部",
+      "enName": "Southern Region",
+      "parent": "260000",
+      "children": [
+        "260011",
+        "260012",
+        "260013",
+        "260014"
+      ]
+    },
+    "260020": {
+      "name": "北部",
+      "enName": "Northern Region",
+      "parent": "260000",
+      "children": [
+        "260021",
+        "260022",
+        "260023"
+      ]
+    }
+  },
+  "class15s": {
+    "140011": {
+      "name": "横浜・川崎",
+      "enName": "Yokohama Kawasaki",
+      "parent": "140010",
+      "children": [
+        "1410011",
+        "1410012",
+        "1413000"
+      ]
+    },
+    "140021": {
+      "name": "相模原",
+      "enName": "Sagamihara",
+      "parent": "140020",
+      "children": [
+        "1415011",
+        "1415012"
+      ]
+    },
+    "270001": {
+      "name": "大阪市",
+      "enName": "Osaka City",
+      "parent": "270000",
+      "children": [
+        "2710000"
+      ]
+    },
+    "130011": {
+      "name": "２３区西部",
+      "enName": "Western Region of 23 wards",
+      "parent": "130010",
+      "children": [
+        "1310100",
+        "1310200",
+        "1310300",
+        "1310400",
+        "1310500",
+        "1310900",
+        "1311000",
+        "1311100",
+        "1311200",
+        "1311300",
+        "1311400",
+        "1311500",
+        "1311600",
+        "1311700",
+        "1311900",
+        "1312000"
+      ]
+    },
+    "140024": {
+      "name": "西湘",
+      "enName": "Seisho",
+      "parent": "140020",
+      "children": [
+        "1420600",
+        "1438200",
+        "1438300",
+        "1438400"
+      ]
+    },
+    "260011": {
+      "name": "京都・亀岡",
+      "enName": "Kyoto Kameoka",
+      "parent": "260010",
+      "children": [
+        "2610000",
+        "2620600",
+        "2620800",
+        "2620900",
+        "2630300"
+      ]
+    }
+  },
+  "class20s": {
+    "1410011": {
+      "name": "横浜市北部",
+      "enName": "Northern Yokohama City",
+      "kana": "よこはましほくぶ",
+      "parent": "140011"
+    },
+    "1410012": {
+      "name": "横浜市南部",
+      "enName": "Southern Yokohama City",
+      "kana": "よこはましなんぶ",
+      "parent": "140011"
+    },
+    "1420600": {
+      "name": "小田原市",
+      "enName": "Odawara City",
+      "kana": "おだわらし",
+      "parent": "140024"
+    },
+    "2710000": {
+      "name": "大阪市",
+      "enName": "Osaka City",
+      "kana": "おおさかし",
+      "parent": "270001"
+    },
+    "1310400": {
+      "name": "新宿区",
+      "enName": "Shinjuku City",
+      "kana": "しんじゅくく",
+      "parent": "130011"
+    },
+    "2610000": {
+      "name": "京都市",
+      "enName": "Kyoto City",
+      "kana": "きょうとし",
+      "parent": "260011"
+    }
+  }
+}

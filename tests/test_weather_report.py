@@ -15,6 +15,9 @@ from feature.weather_report.forecast import (
     ForecastUnavailable, JmaForecastProvider, JST, format_forecast, parse_jma,
 )
 from feature.weather_report.reporter import WeatherReporter
+from feature.weather_report.location import YOKOHAMA, Location, resolve_location
+from feature.weather_report.narrator import GeminiForecastNarrator
+from feature import gemini
 
 
 class ForecastTests(unittest.TestCase):
@@ -50,13 +53,113 @@ class ForecastTests(unittest.TestCase):
 
     @patch("feature.weather_report.forecast.requests.get")
     def test_http_timeout_and_status(self, get):
+        provider = JmaForecastProvider()
+        provider._location = YOKOHAMA
         get.return_value.json.return_value = self.payload
-        self.assertEqual(JmaForecastProvider().fetch(self.day).day, self.day)
+        self.assertEqual(provider.fetch(self.day).day, self.day)
         self.assertEqual(get.call_args.kwargs["timeout"], (5, 15))
         get.return_value.raise_for_status.assert_called_once()
         get.side_effect = requests.Timeout()
         with self.assertRaises(requests.Timeout):
-            JmaForecastProvider().fetch(self.day)
+            provider.fetch(self.day)
+
+    def test_different_area_and_station(self):
+        forecast = parse_jma(self.payload, self.day,
+                             Location("小田原", "140000", "140020", "小田原"))
+        self.assertEqual(forecast.precipitation[1], (6, "40"))
+        self.assertEqual(forecast.temperatures, ((0, "19"), (9, "23")))
+        self.assertIn("小田原の天気予報", format_forecast(forecast))
+        self.assertEqual(forecast.area_name, "西部")
+
+    def test_missing_station_does_not_use_other_city(self):
+        forecast = parse_jma(self.payload, self.day,
+                             Location("川崎市", "140000", "140010", "川崎"))
+        self.assertEqual(forecast.temperatures, ())
+        self.assertIn("予想気温：情報なし", format_forecast(forecast))
+
+
+class LocationTests(unittest.TestCase):
+    def setUp(self):
+        self.catalog = json.loads(
+            (Path(__file__).parent / "fixtures/jma_areas.json").read_text())
+
+    def test_major_city_names_and_municipality(self):
+        for name, office, area, station in [
+            ("横浜", "140000", "140010", "横浜"),
+            ("東京", "130000", "130010", "東京"),
+            ("大阪", "270000", "270000", "大阪"),
+            ("京都", "260000", "260010", "京都"),
+            ("神奈川県/小田原市", "140000", "140020", "小田原"),
+            ("新宿区", "130000", "130010", "新宿区"),
+        ]:
+            with self.subTest(name=name):
+                result = resolve_location(self.catalog, name)
+                self.assertEqual((result.office_code, result.area_code, result.station_name),
+                                 (office, area, station))
+
+    def test_explicit_station(self):
+        self.assertEqual(resolve_location(self.catalog, "新宿区", "東京").station_name, "東京")
+
+    def test_unknown_ambiguous_and_empty_names(self):
+        for name in ("存在しない地点", "神奈川県", "", "東京都"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                resolve_location(self.catalog, name)
+
+    @patch("feature.weather_report.forecast.requests.get")
+    def test_provider_resolves_once_and_uses_selected_office(self, get):
+        payload = json.loads((Path(__file__).parent / "fixtures/jma_140000.json").read_text())
+        catalog_response = Mock()
+        catalog_response.json.return_value = self.catalog
+        forecast_response = Mock()
+        forecast_response.json.return_value = payload
+        get.side_effect = [catalog_response, forecast_response, forecast_response]
+        provider = JmaForecastProvider("小田原")
+        provider.fetch(date(2026, 10, 2))
+        provider.fetch(date(2026, 10, 2))
+        self.assertEqual(get.call_count, 3)
+        self.assertTrue(get.call_args_list[1].args[0].endswith("140000.json"))
+        self.assertEqual(provider._location.area_code, "140020")
+
+
+class NarratorTests(unittest.TestCase):
+    def setUp(self):
+        payload = json.loads((Path(__file__).parent / "fixtures/jma_140000.json").read_text())
+        self.forecast = parse_jma(payload, date(2026, 10, 2))
+
+    @patch("feature.weather_report.narrator.gemini.analyze_with_gemini")
+    def test_passes_forecast_and_persona(self, generate):
+        generate.return_value = "花海咲季よ！今日は雨に備えてね！"
+        text = GeminiForecastNarrator().narrate(self.forecast)
+        self.assertTrue(text.startswith("花海咲季よ！"))
+        contents, config = generate.call_args.args
+        self.assertIn("06–12時 50%", contents[0])
+        self.assertIn("横浜", contents[0])
+        self.assertIn("日最低・最高", config.system_instruction)
+        self.assertEqual(config.http_options.timeout, 15000)
+        self.assertTrue(generate.call_args.kwargs["raise_on_failure"])
+
+    @patch("feature.weather_report.narrator.gemini.analyze_with_gemini")
+    def test_rejects_missing_persona_and_oversized_text(self, generate):
+        for text in ("", "天気です", "花海咲季よ！" + "あ" * 500):
+            with self.subTest(text=text[:10]), self.assertRaises(ValueError):
+                generate.return_value = text
+                GeminiForecastNarrator().narrate(self.forecast)
+
+    @patch("feature.gemini.get_client")
+    def test_shared_helper_failure_modes(self, client):
+        client.return_value.models.generate_content.side_effect = RuntimeError("unavailable")
+        with self.assertLogs(level="ERROR"):
+            with self.assertRaises(RuntimeError):
+                gemini.analyze_with_gemini([], None, raise_on_failure=True)
+            self.assertIn("一時的に利用できない", gemini.analyze_with_gemini([], None))
+
+    @patch("feature.gemini.get_client")
+    def test_empty_gemini_response_retries(self, client):
+        client.return_value.models.generate_content.side_effect = [
+            Mock(text=None), Mock(text="花海咲季よ！")]
+        with self.assertLogs(level="ERROR"):
+            self.assertEqual(gemini.analyze_with_gemini([], None, raise_on_failure=True),
+                             "花海咲季よ！")
 
 
 class ReporterTests(unittest.IsolatedAsyncioTestCase):
@@ -97,6 +200,32 @@ class ReporterTests(unittest.IsolatedAsyncioTestCase):
         self.client.wait_until_ready.side_effect = asyncio.CancelledError()
         with self.assertRaises(asyncio.CancelledError):
             await self.reporter.post_report()
+
+    async def test_narration_is_posted_with_original_forecast(self):
+        self.reporter.narrator = Mock()
+        self.reporter.narrator.narrate.return_value = "花海咲季よ！雨に備えるのよ！"
+        await self.reporter.post_report()
+        text = self.channel.send.call_args.args[0]
+        self.assertIn("花海咲季よ！", text)
+        self.assertIn("06–12時 50%", text)
+        self.assertIn("出典：気象庁", text)
+        self.assertFalse(self.channel.send.call_args.kwargs["allowed_mentions"].everyone)
+
+    async def test_narration_failure_falls_back_to_original_forecast(self):
+        self.reporter.narrator = Mock()
+        self.reporter.narrator.narrate.side_effect = RuntimeError("Gemini failed")
+        with self.assertLogs("feature.weather_report.reporter", level="ERROR"):
+            await self.reporter.post_report()
+        self.assertEqual(self.channel.send.call_args.args[0],
+                         format_forecast(self.provider.fetch.return_value))
+
+    async def test_oversized_narration_falls_back(self):
+        self.reporter.narrator = Mock()
+        self.reporter.narrator.narrate.return_value = "あ" * 2000
+        with self.assertLogs("feature.weather_report.reporter", level="ERROR"):
+            await self.reporter.post_report()
+        self.assertEqual(self.channel.send.call_args.args[0],
+                         format_forecast(self.provider.fetch.return_value))
 
 
 

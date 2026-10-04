@@ -12,6 +12,8 @@ from datetime import time,datetime
 import config as cfg
 from discord.ext import tasks
 from feature.weather_report.reporter import WeatherReporter
+from feature.weather_report.forecast import JmaForecastProvider
+from feature.weather_report.narrator import GeminiForecastNarrator
 
 token = os.getenv('TOKEN')
 JST = ZoneInfo("Asia/Tokyo")
@@ -19,7 +21,11 @@ JST = ZoneInfo("Asia/Tokyo")
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-weather_reporter = WeatherReporter(client, cfg.WEATHER_REPORT_CHANNEL_ID)
+weather_reporter = WeatherReporter(
+    client, cfg.WEATHER_REPORT_CHANNEL_ID,
+    provider=JmaForecastProvider(cfg.WEATHER_LOCATION_NAME, cfg.WEATHER_TEMPERATURE_STATION_NAME),
+    narrator=GeminiForecastNarrator() if cfg.WEATHER_USE_GEMINI else None,
+)
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     if not message:
@@ -38,6 +44,7 @@ async def scheduled_tech_trend_task():
         await send_scheduled_message(cfg.TECH_TREND_CHANNEL_ID, message)
 
 # 天気予報を毎朝7時(JST)に投稿
+# 毎朝7時(JST)に天気の取得・投稿を委譲する。失敗時の処理は投稿側に任せる。
 @tasks.loop(time=time(hour=7, tzinfo=JST))
 async def scheduled_weather_report_task():
     await weather_reporter.post_report()
@@ -52,6 +59,7 @@ async def update_presence():
     await set_presence(client)
 
 # 起動時に動作する処理
+# 接続・再接続時に状態を更新し、未起動の定期タスクだけを開始する。
 @client.event
 async def on_ready():
     # 起動したらログイン通知が表示される
