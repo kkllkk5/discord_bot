@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from datetime import time,datetime
 import config as cfg
 from discord.ext import tasks
+from feature.weather_report.reporter import WeatherReporter
 
 token = os.getenv('TOKEN')
 JST = ZoneInfo("Asia/Tokyo")
@@ -18,6 +19,7 @@ JST = ZoneInfo("Asia/Tokyo")
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+weather_reporter = WeatherReporter(client, cfg.WEATHER_REPORT_CHANNEL_ID)
 
 async def send_scheduled_message(channel_id: int, message: str) -> None:
     if not message:
@@ -35,6 +37,11 @@ async def scheduled_tech_trend_task():
         message = tech.fetch_trending_qiita()
         await send_scheduled_message(cfg.TECH_TREND_CHANNEL_ID, message)
 
+# 天気予報を毎朝7時(JST)に投稿
+@tasks.loop(time=time(hour=7, tzinfo=JST))
+async def scheduled_weather_report_task():
+    await weather_reporter.post_report()
+
 # 4,5,20時にアクティビティを更新
 @tasks.loop(time=[
     time(hour=4, tzinfo=JST),
@@ -49,6 +56,11 @@ async def update_presence():
 async def on_ready():
     # 起動したらログイン通知が表示される
     cfg.logger.info('ログインしました')
+    if cfg.WEATHER_REPORT_CHANNEL_ID > 0:
+        if not scheduled_weather_report_task.is_running():
+            scheduled_weather_report_task.start()
+    else:
+        cfg.logger.warning('WEATHER_REPORT_CHANNEL_ID未設定のため天気投稿は無効です')
     # アクティビティを更新
     await set_presence(client)
     # スケジューリングをセット
