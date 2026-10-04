@@ -47,6 +47,18 @@ APIが成功を返すのはBot側の適用完了が記録されたときです�
 
 SQLiteを同一マシン・同一共有ファイルで使う構成です。BotとAPIを別サーバーや別コンテナへ分離する際は、そのままでは連携しません。複数のBotプロセスを同じDBで動かすことも対象外です。コンテナを再作成しても設定を保持する場合、DBの保存先を永続ボリュームにしてください。
 
+## Koyebへのデプロイ
+
+この実装はSQLiteを使用します。現在の `run_all.sh` のようにBotとAPIを同じService・同じInstance内で起動するなら、共有ファイルによる連携は可能です。別Serviceに分けるとローカルSQLiteファイルを共有できません。
+
+Koyebの通常のローカルディスクは一時領域です。再デプロイ・Instanceの再配置などでDBが失われる可能性があります。消失時にはログ・操作履歴・ログインセッション・保存したプレゼンス・機能のON/OFF設定が初期化され、機能は初期値の「すべて有効」へ戻ります。設定を維持する前提の運用では、現状のローカルディスクだけに保存する構成は使用しないでください。
+
+2026-10-05時点の公式仕様では、Free/Eco InstanceにVolumesは付けられません。VolumesはStandard/GPU、対応リージョン（Washington D.C./Frankfurt）、ServiceのInstance数1で利用できます。Volumeを `/data` にマウントする例では `DASHBOARD_DB_PATH=/data/dashboard.sqlite3` と設定します。BotとAPIには同じ値を渡してください。Volumes自体はpublic previewで、公式にはテスト向けとされているため、重要なデータのバックアップも必要です。
+
+無料枠で設定や履歴を継続保存したい場合、外部PostgreSQL等への保存方式の変更が必要です。現コードはSQLite専用であり、`DASHBOARD_DB_PATH` にPostgreSQLのURLを設定しても接続できません。外部DBへの移行はこの変更には含めていません。
+
+公式資料: [Local SSD Storage](https://www.koyeb.com/docs/reference/storage)、[Volumes](https://www.koyeb.com/docs/reference/volumes)、[Instances](https://www.koyeb.com/docs/reference/instances)。
+
 ## ファイル
 
 - `index.html`, `assets/`: ビルド不要の画面。
