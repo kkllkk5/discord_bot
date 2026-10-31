@@ -317,3 +317,63 @@ def test_build_analyzer_options_preserves_layout(monkeypatch):
         if debug_mode == '1':
             expected.append(('テスト用', 4, ma_constants.ANALYZER_ID_TEST, None, actual_module.discord.ButtonStyle.secondary))
         assert actual_module.build_analyzer_options(lambda emoji_id: f'emoji:{emoji_id}') == expected
+
+
+@pytest.mark.parametrize('failure', ['analysis', 'attachment', 'notification', 'cleanup', 'cancel'])
+def test_handle_meal_analyze_error_boundary(monkeypatch, failure):
+    from unittest.mock import AsyncMock, Mock
+
+    load_meal_analyze()
+    module = importlib.import_module('feature.meal_analyze.meal_analyze')
+    logger = Mock()
+    monkeypatch.setattr(module.cfg, 'logger', logger)
+    attachment = types.SimpleNamespace(content_type='image/png', read=AsyncMock(return_value=b'img'))
+    control = types.SimpleNamespace(delete=AsyncMock())
+    message = types.SimpleNamespace(
+        content='hello', attachments=[attachment],
+        author=types.SimpleNamespace(id=42, mention='@tester', display_name='tester'),
+        reply=AsyncMock(side_effect=[control, None]),
+    )
+
+    def make_view(**kwargs):
+        event = asyncio.Event()
+        event.set()
+        return types.SimpleNamespace(event=event, result=module.constants.ANALYZER_ID_SAKI)
+
+    monkeypatch.setattr(module, 'AnalyzeView', make_view)
+    analyze = Mock(return_value='OK')
+    monkeypatch.setattr(module, 'analyze_meal_images', analyze)
+    if failure == 'attachment':
+        attachment.read.side_effect = RuntimeError('read failed')
+        message.reply.side_effect = None
+    elif failure == 'cancel':
+        analyze.side_effect = asyncio.CancelledError()
+    elif failure == 'cleanup':
+        control.delete.side_effect = RuntimeError('delete failed')
+    else:
+        analyze.side_effect = ValueError('Unknown analyzer ID')
+        control.delete.side_effect = RuntimeError('delete failed')
+        if failure == 'notification':
+            message.reply.side_effect = [control, RuntimeError('send failed')]
+
+    if failure == 'cancel':
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(module.handle_meal_analyze(message, lambda _: None))
+        control.delete.assert_awaited_once()
+        logger.exception.assert_not_called()
+        return
+
+    asyncio.run(module.handle_meal_analyze(message, lambda _: None))
+    if failure == 'attachment':
+        analyze.assert_not_called()
+        control.delete.assert_not_awaited()
+    else:
+        control.delete.assert_awaited_once()
+    if failure == 'cleanup':
+        assert message.reply.await_args.args == ('OK',)
+        logger.exception.assert_called_once_with('食事解析の操作メッセージを削除できませんでした')
+    else:
+        assert message.reply.await_args.args == ('食事の解析に失敗しました。時間をおいてもう一度試してください。',)
+        assert any(call.args == ('食事解析の処理に失敗しました',) for call in logger.exception.call_args_list)
+        if failure == 'notification':
+            logger.exception.assert_any_call('食事解析の失敗通知を送信できませんでした')

@@ -741,9 +741,6 @@ def make_test_prompt(user_name: str, message: str) -> str:
     prompt_common_output = make_prompt_common_output(message)
     test_prompt = f"""
         以下の条件を厳守して応答してください.：
-        - 応答は必ず「マーヨマヨマヨマヨマヨマヨ！」から始めてください.
-        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
-        - 語尾を全て「マヨ!」としてください.
         {prompt_common_strict}
         {prompt_common_output}
         {prompt_common_format}
