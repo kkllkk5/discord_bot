@@ -1,5 +1,4 @@
 import asyncio
-import os
 from typing import Callable, Optional
 
 import config as cfg
@@ -8,7 +7,12 @@ import discord
 from feature import constants
 from feature import gemini
 from feature.meal_analyze.analyze_view import AnalyzeView
-from feature.meal_analyze.make_prompt import PROMPT_FACTORY_REGISTRY, get_prompt_for_analyzer
+from feature.meal_analyze.make_prompt import (
+    ANALYZER_BUTTON_REGISTRY,
+    PROMPT_FACTORY_REGISTRY,
+    AnalyzerButton,
+    get_prompt_for_analyzer,
+)
 
 
 # 食事解析
@@ -67,32 +71,36 @@ async def handle_meal_analyze(message, get_emoji):
         cfg.logger.info("画像が見つかりませんでした.")
 
 
-# Discord上に表示するボタンをコントロールする関数
 def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) -> list[tuple[str, int, int, Optional[discord.Emoji], discord.ButtonStyle]]:
-    buttons = [
-        # 表示文字列,表示列,分析者ID,表示絵文字,ボタンの表示色
-        ("アイドル全員からランダム", 0, constants.ANALYZER_ID_ALL_IDOL, None, discord.ButtonStyle.secondary),
-        ("咲季", 0, constants.ANALYZER_ID_SAKI, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
-        ("手毬", 0, constants.ANALYZER_ID_TEMARI, get_emoji(1531255289083334749), discord.ButtonStyle.primary),
-        ("ことね", 0, constants.ANALYZER_ID_KOTONE, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
-        ("広", 0, constants.ANALYZER_ID_HIRO, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
-        ("莉波", 1, constants.ANALYZER_ID_RINAMI, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
-        ("美鈴", 1, constants.ANALYZER_ID_MISUZU, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
-        ("エアプ全員からランダム", 2, constants.ANALYZER_ID_ALL_AIRPLAY, None, discord.ButtonStyle.secondary),
-        ("咲季(エアプ)", 2, constants.ANALYZER_ID_SAKI_AIRPLAY, get_emoji(1525052785333239829), discord.ButtonStyle.primary),
-        ("手毬(エアプ)", 2, constants.ANALYZER_ID_TEMARI_AIRPLAY, get_emoji(1531255289083334749), discord.ButtonStyle.primary),
-        ("ことね(エアプ)", 2, constants.ANALYZER_ID_KOTONE_AIRPLAY, get_emoji(1529460170609004614), discord.ButtonStyle.primary),
-        ("広(エアプ)", 2, constants.ANALYZER_ID_HIRO_AIRPLAY, get_emoji(1525055654686097569), discord.ButtonStyle.primary),
-        ("莉波(エアプ)", 3, constants.ANALYZER_ID_RINAMI_AIRPLAY, get_emoji(1525055724181524610), discord.ButtonStyle.primary),
-        ("美鈴(エアプ)", 3, constants.ANALYZER_ID_MISUZU_AIRPLAY, get_emoji(1525336748283006996), discord.ButtonStyle.primary),
-        ("キャンセル", 4, constants.ANALYZER_ID_CANCELLED, None, discord.ButtonStyle.secondary),
+    """登録済みの表示情報から、表示順にDiscord用のボタン設定を作る。"""
+    # プロンプトを持たない操作ボタンは表示側で定義する。
+    # 各分析者とテスト用ボタンの表示情報は、プロンプトのデコレータで登録する。
+    button_definitions = {
+        constants.ANALYZER_ID_ALL_IDOL: AnalyzerButton(
+            "アイドル全員からランダム", row=0, order=0, primary=False,
+        ),
+        constants.ANALYZER_ID_ALL_AIRPLAY: AnalyzerButton(
+            "エアプ全員からランダム", row=2, order=7, primary=False,
+        ),
+        constants.ANALYZER_ID_CANCELLED: AnalyzerButton(
+            "キャンセル", row=4, order=14, primary=False,
+        ),
+        **ANALYZER_BUTTON_REGISTRY,
+    }
+    # 関数の定義順に依存せずorderで並べ、表示時に絵文字と色を解決する。
+    # 戻り値の各要素は（表示名、行番号、分析者ID、絵文字、ボタン色）。
+    return [
+        (
+            button.label,
+            button.row,
+            analyzer_id,
+            get_emoji(button.emoji_id) if button.emoji_id is not None else None,
+            discord.ButtonStyle.primary if button.primary else discord.ButtonStyle.secondary,
+        )
+        for analyzer_id, button in sorted(
+            button_definitions.items(), key=lambda item: item[1].order,
+        )
     ]
-
-    # デバッグモード（ローカル起動）の場合のみ，テスト用の解析者を追加
-    if os.getenv("DEBUG_MODE") == "1":
-        buttons.append(("テスト用", 4, constants.ANALYZER_ID_TEST, None, discord.ButtonStyle.secondary))
-
-    return buttons
 
 
 # 食事の写真を解析する関数

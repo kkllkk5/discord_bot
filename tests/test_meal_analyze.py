@@ -4,6 +4,8 @@ import os
 import sys
 import types
 
+import pytest
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
@@ -118,7 +120,7 @@ def test_register_and_get_prompt_factories_for_group():
     assert g2 and g2[0]('u', 't') == 'B:u:t'
 
 
-def test_get_prompt_for_analyzer_invalid_id_falls_back():
+def test_get_prompt_for_analyzer_invalid_id_raises():
     ma = load_meal_analyze()
     ma.PROMPT_FACTORY_REGISTRY.clear()
 
@@ -127,8 +129,8 @@ def test_get_prompt_for_analyzer_invalid_id_falls_back():
 
     ma.register_prompt_factory(2000, p1, 'idol')
 
-    prompt = ma.get_prompt_for_analyzer(9999, 'tester')
-    assert prompt.startswith('P1:tester:')
+    with pytest.raises(ValueError, match='Unknown analyzer ID: 9999'):
+        ma.get_prompt_for_analyzer(9999, 'tester')
 
 
 def test_get_prompt_for_analyzer_sanitizes_user_name():
@@ -272,3 +274,46 @@ def test_handle_meal_analyze_calls_local_analyze_function():
     finally:
         actual_module.AnalyzeView = original_view
         actual_module.analyze_meal_images = load_meal_analyze().analyze_meal_images
+
+
+def test_build_analyzer_options_preserves_layout(monkeypatch):
+    import runpy
+
+    load_meal_analyze()
+    actual_module = importlib.import_module('feature.meal_analyze.meal_analyze')
+    ma_constants = actual_module.constants
+    characters = [
+        ('SAKI', '咲季', 1525052785333239829),
+        ('TEMARI', '手毬', 1531255289083334749),
+        ('KOTONE', 'ことね', 1529460170609004614),
+        ('HIRO', '広', 1525055654686097569),
+        ('RINAMI', '莉波', 1525055724181524610),
+        ('MISUZU', '美鈴', 1525336748283006996),
+    ]
+    for debug_mode in ('0', '1'):
+        monkeypatch.setenv('DEBUG_MODE', debug_mode)
+        prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/make_prompt.py'))
+        # 定義順が変わっても明示した表示順で並ぶことを確認する。
+        registry = dict(reversed(list(prompts['ANALYZER_BUTTON_REGISTRY'].items())))
+        monkeypatch.setattr(actual_module, 'ANALYZER_BUTTON_REGISTRY', registry)
+        expected = []
+        for airplay in (False, True):
+            suffix = '_AIRPLAY' if airplay else ''
+            row_offset = 2 if airplay else 0
+            expected.append((
+                'エアプ全員からランダム' if airplay else 'アイドル全員からランダム',
+                row_offset,
+                getattr(ma_constants, 'ANALYZER_ID_ALL_AIRPLAY' if airplay else 'ANALYZER_ID_ALL_IDOL'),
+                None, actual_module.discord.ButtonStyle.secondary,
+            ))
+            for index, (name, label, emoji_id) in enumerate(characters):
+                expected.append((
+                    label + ('(エアプ)' if airplay else ''),
+                    row_offset + (0 if index < 4 else 1),
+                    getattr(ma_constants, f'ANALYZER_ID_{name}{suffix}'),
+                    f'emoji:{emoji_id}', actual_module.discord.ButtonStyle.primary,
+                ))
+        expected.append(('キャンセル', 4, ma_constants.ANALYZER_ID_CANCELLED, None, actual_module.discord.ButtonStyle.secondary))
+        if debug_mode == '1':
+            expected.append(('テスト用', 4, ma_constants.ANALYZER_ID_TEST, None, actual_module.discord.ButtonStyle.secondary))
+        assert actual_module.build_analyzer_options(lambda emoji_id: f'emoji:{emoji_id}') == expected
