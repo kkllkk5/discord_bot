@@ -1,9 +1,3 @@
-import asyncio
-import os
-import random
-import re
-from typing import Callable, Optional
-
 import discord
 
 from feature import constants, gemini
@@ -13,14 +7,18 @@ from .make_prompt import (
     get_prompt_factories_for_group,
     get_prompt_for_analyzer,
     register_prompt_factory,
+    register_prompt,
     sanitize_user_name,
 )
-from .meal_analyze import analyze_meal_images, build_analyzer_options, handle_meal_analyze
+from .analysis import analyze_meal_images
+from .analyzer_options import build_analyzer_options
+from .meal_analyze import handle_meal_analyze
 
 __all__ = [
     "PROMPT_FACTORY_REGISTRY",
     "sanitize_user_name",
     "register_prompt_factory",
+    "register_prompt",
     "get_prompt_factories_for_group",
     "get_prompt_for_analyzer",
     "handle_meal_analyze",

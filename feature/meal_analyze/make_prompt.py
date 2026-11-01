@@ -1,12 +1,30 @@
 import os
 import random
 import re
+from dataclasses import dataclass
 from typing import Callable
 
 from feature import constants
 
-# 使用するプロンプト一覧
-PROMPT_FACTORY_REGISTRY: dict[int, tuple[Callable[[str, str], str], str]] = {}
+PromptFactory = Callable[[str, str], str]
+
+@dataclass(frozen=True)
+class AnalyzerButton:
+    """Discordへの変換前のボタン表示情報。
+
+    配置はanalyzer_options.pyのANALYZER_BUTTON_LAYOUTで管理する。
+    primaryがFalseなら副操作用の色で表示する。
+    """
+    label: str
+    emoji_id: int | None = None
+    primary: bool = True
+
+
+# 分析者IDに対応する表示情報。絵文字やボタン色への変換は表示側で行う。
+ANALYZER_BUTTON_REGISTRY: dict[int, AnalyzerButton] = {}
+
+# 分析者IDに対応する（プロンプト生成関数、ランダム選択用グループ）。
+PROMPT_FACTORY_REGISTRY: dict[int, tuple[PromptFactory, str]] = {}
 
 # user_nameをプロンプトインジェクションを防ぐ形に整形する
 # 具体的には，以下のように行う
@@ -47,12 +65,31 @@ def sanitize_user_name(user_name: str) -> str:
     return cleaned[:32]
 
 
-# プロンプト一覧に登録
-# analyzer_id: 分析ID(constantsから取得)
-# prompt_factory:プロンプトのmake関数
-# group:IDOLかairplayか
 def register_prompt_factory(analyzer_id: int, prompt_factory: Callable[[str, str], str], group: str) -> None:
+    """互換用の直接登録。既存IDは上書きし、ボタン表示情報は変更しない。"""
     PROMPT_FACTORY_REGISTRY[analyzer_id] = (prompt_factory, group)
+
+
+def register_prompt(
+    analyzer_id: int, group: str, *, button: AnalyzerButton | None = None, enabled: bool = True
+) -> Callable[[PromptFactory], PromptFactory]:
+    """関数の定義時にプロンプトと任意のボタン表示情報を登録する。
+
+    groupにはランダム選択用のグループ（idol / airplay）を指定する。
+    enabledがFalseならどちらも登録せず、重複IDは登録前にエラーにする。
+    有効・無効にかかわらず元の関数を返し、通常どおり直接呼び出せる。
+    """
+    def decorator(prompt_factory: PromptFactory) -> PromptFactory:
+        if not enabled:
+            return prompt_factory
+        if analyzer_id in PROMPT_FACTORY_REGISTRY:
+            raise ValueError(f"Duplicate analyzer ID: {analyzer_id}")
+        register_prompt_factory(analyzer_id, prompt_factory, group)
+        if button is not None:
+            ANALYZER_BUTTON_REGISTRY[analyzer_id] = button
+        return prompt_factory
+
+    return decorator
 
 
 # 特定のグループに属するプロンプトのmake関数を全て取得
@@ -63,27 +100,26 @@ def get_prompt_factories_for_group(group: str) -> list[Callable[[str, str], str]
         if prompt_group == group
     ]
 
-# 利用するプロンプトを選択
 def get_prompt_for_analyzer(analyzer_id: int, user_name: str, message: str = "") -> str:
+    """分析者を選びプロンプトを生成する。該当する選択肢がないIDはValueErrorにする。"""
     safe_user_name = sanitize_user_name(user_name)
 
-    # ALL_IDOLの場合idolグループからランダム
-    if analyzer_id == constants.ANALYZER_ID_ALL_IDOL:
-        prompt_factories = get_prompt_factories_for_group("idol")
-        return random.choice([prompt_factory(safe_user_name, message) for prompt_factory in prompt_factories])
-    # ALL_AIRPLAYの場合airplayグループからランダム
-    if analyzer_id == constants.ANALYZER_ID_ALL_AIRPLAY:
-        prompt_factories = get_prompt_factories_for_group("airplay")
-        return random.choice([prompt_factory(safe_user_name, message) for prompt_factory in prompt_factories])
-
-    # 特定のプロンプトを選択している場合は，そのプロンプトを取得
+    # 特定のプロンプトを指すIDなら、その関数で生成する。
     prompt_factory_entry = PROMPT_FACTORY_REGISTRY.get(analyzer_id)
-    # 想定外のidが入力された場合はアイドルからランダム選択（安定稼働を優先）
-    if prompt_factory_entry is None:
-        prompt_factories = get_prompt_factories_for_group("idol")
-        return random.choice([prompt_factory(safe_user_name, message) for prompt_factory in prompt_factories])
+    if prompt_factory_entry is not None:
+        prompt_factory, _ = prompt_factory_entry
+        return prompt_factory(safe_user_name, message)
 
-    prompt_factory, _ = prompt_factory_entry
+    # ランダム選択を指すIDなら、対応するグループから関数を選ぶ。
+    random_group = {
+        constants.ANALYZER_ID_ALL_IDOL: "idol",
+        constants.ANALYZER_ID_ALL_AIRPLAY: "airplay",
+    }.get(analyzer_id)
+    # 個別プロンプトにもランダム選択にも該当しない想定外のIDは、例外にする。
+    if random_group is None:
+        raise ValueError(f"Unknown analyzer ID: {analyzer_id}")
+
+    prompt_factory = random.choice(get_prompt_factories_for_group(random_group))
     return prompt_factory(safe_user_name, message)
 
 
@@ -270,6 +306,10 @@ prompt_common_format = f"""
 
 
 # 咲季用
+@register_prompt(
+    constants.ANALYZER_ID_SAKI, "idol",
+    button=AnalyzerButton("咲季", emoji_id=1525052785333239829),
+)
 def make_saki_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -304,6 +344,10 @@ def make_saki_prompt(user_name: str, message: str) -> str:
 
 
 # 咲季（エアプ）用
+@register_prompt(
+    constants.ANALYZER_ID_SAKI_AIRPLAY, "airplay",
+    button=AnalyzerButton("咲季(エアプ)", emoji_id=1525052785333239829),
+)
 def make_saki_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -328,6 +372,10 @@ def make_saki_airplay_prompt(user_name: str, message: str) -> str:
 
 
 # 広用
+@register_prompt(
+    constants.ANALYZER_ID_HIRO, "idol",
+    button=AnalyzerButton("広", emoji_id=1525055654686097569),
+)
 def make_hiro_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -354,6 +402,10 @@ def make_hiro_prompt(user_name: str, message: str) -> str:
 
 
 # 広(エアプ)用
+@register_prompt(
+    constants.ANALYZER_ID_HIRO_AIRPLAY, "airplay",
+    button=AnalyzerButton("広(エアプ)", emoji_id=1525055654686097569),
+)
 def make_hiro_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -377,6 +429,10 @@ def make_hiro_airplay_prompt(user_name: str, message: str) -> str:
 
 
 # 莉波用
+@register_prompt(
+    constants.ANALYZER_ID_RINAMI, "idol",
+    button=AnalyzerButton("莉波", emoji_id=1525055724181524610),
+)
 def make_rinami_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -400,6 +456,10 @@ def make_rinami_prompt(user_name: str, message: str) -> str:
 
 
 # 莉波(エアプ)用
+@register_prompt(
+    constants.ANALYZER_ID_RINAMI_AIRPLAY, "airplay",
+    button=AnalyzerButton("莉波(エアプ)", emoji_id=1525055724181524610),
+)
 def make_rinami_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -421,6 +481,10 @@ def make_rinami_airplay_prompt(user_name: str, message: str) -> str:
 
 
 # 美鈴用
+@register_prompt(
+    constants.ANALYZER_ID_MISUZU, "idol",
+    button=AnalyzerButton("美鈴", emoji_id=1525336748283006996),
+)
 def make_misuzu_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -447,6 +511,10 @@ def make_misuzu_prompt(user_name: str, message: str) -> str:
 
 
 # 美鈴(エアプ)用
+@register_prompt(
+    constants.ANALYZER_ID_MISUZU_AIRPLAY, "airplay",
+    button=AnalyzerButton("美鈴(エアプ)", emoji_id=1525336748283006996),
+)
 def make_misuzu_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -486,6 +554,10 @@ def make_china_prompt(user_name: str, message: str) -> str:
 
 
 # 手毬用
+@register_prompt(
+    constants.ANALYZER_ID_TEMARI, "idol",
+    button=AnalyzerButton("手毬", emoji_id=1531255289083334749),
+)
 def make_temari_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -543,6 +615,10 @@ def make_temari_prompt(user_name: str, message: str) -> str:
 
 
 # 手毬(エアプ)用
+@register_prompt(
+    constants.ANALYZER_ID_TEMARI_AIRPLAY, "airplay",
+    button=AnalyzerButton("手毬(エアプ)", emoji_id=1531255289083334749),
+)
 def make_temari_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -562,6 +638,10 @@ def make_temari_airplay_prompt(user_name: str, message: str) -> str:
 
 
 # ことね用
+@register_prompt(
+    constants.ANALYZER_ID_KOTONE, "idol",
+    button=AnalyzerButton("ことね", emoji_id=1529460170609004614),
+)
 def make_kotone_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -626,6 +706,10 @@ def make_kotone_prompt(user_name: str, message: str) -> str:
 
 
 # ことね(エアプ)用
+@register_prompt(
+    constants.ANALYZER_ID_KOTONE_AIRPLAY, "airplay",
+    button=AnalyzerButton("ことね(エアプ)", emoji_id=1529460170609004614),
+)
 def make_kotone_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
@@ -644,14 +728,17 @@ def make_kotone_airplay_prompt(user_name: str, message: str) -> str:
     return kotone_prompt
 
 
+# モジュール読み込み時にDEBUG_MODE=1なら、プロンプトとボタンを両方登録する。
+@register_prompt(
+    constants.ANALYZER_ID_TEST, "idol",
+    button=AnalyzerButton("テスト用", primary=False),
+    enabled=os.getenv("DEBUG_MODE") == "1",
+)
 def make_test_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     prompt_common_output = make_prompt_common_output(message)
     test_prompt = f"""
         以下の条件を厳守して応答してください.：
-        - 応答は必ず「マーヨマヨマヨマヨマヨマヨ！」から始めてください.
-        - 二人称はあまり使わず，「{user_name}」と名前で呼びかける様にしてください
-        - 語尾を全て「マヨ!」としてください.
         {prompt_common_strict}
         {prompt_common_output}
         {prompt_common_format}
@@ -659,26 +746,13 @@ def make_test_prompt(user_name: str, message: str) -> str:
     return test_prompt
 
 
-register_prompt_factory(constants.ANALYZER_ID_SAKI, make_saki_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_SAKI_AIRPLAY, make_saki_airplay_prompt, "airplay")
-register_prompt_factory(constants.ANALYZER_ID_HIRO, make_hiro_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_HIRO_AIRPLAY, make_hiro_airplay_prompt, "airplay")
-register_prompt_factory(constants.ANALYZER_ID_RINAMI, make_rinami_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_RINAMI_AIRPLAY, make_rinami_airplay_prompt, "airplay")
-register_prompt_factory(constants.ANALYZER_ID_MISUZU, make_misuzu_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_MISUZU_AIRPLAY, make_misuzu_airplay_prompt, "airplay")
-register_prompt_factory(constants.ANALYZER_ID_TEMARI, make_temari_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_TEMARI_AIRPLAY, make_temari_airplay_prompt, "airplay")
-register_prompt_factory(constants.ANALYZER_ID_KOTONE, make_kotone_prompt, "idol")
-register_prompt_factory(constants.ANALYZER_ID_KOTONE_AIRPLAY, make_kotone_airplay_prompt, "airplay")
-if os.getenv("DEBUG_MODE") == "1":
-    register_prompt_factory(constants.ANALYZER_ID_TEST, make_test_prompt, "idol")
-
-
 __all__ = [
     "PROMPT_FACTORY_REGISTRY",
+    "AnalyzerButton",
+    "ANALYZER_BUTTON_REGISTRY",
     "sanitize_user_name",
     "register_prompt_factory",
+    "register_prompt",
     "get_prompt_factories_for_group",
     "get_prompt_for_analyzer",
     "make_prompt_common_strict",
