@@ -1,18 +1,14 @@
+"""Discordでの食事解析の受付・返信・例外処理。"""
+
 import asyncio
-from typing import Callable, Optional
 
 import config as cfg
-import discord
 
 from feature import constants
-from feature import gemini
-from feature.meal_analyze.analyze_view import AnalyzeView
-from feature.meal_analyze.make_prompt import (
-    ANALYZER_BUTTON_REGISTRY,
-    PROMPT_FACTORY_REGISTRY,
-    AnalyzerButton,
-    get_prompt_for_analyzer,
-)
+from .analysis import analyze_meal_images
+from .analyzer_options import build_analyzer_options
+from .analyze_view import AnalyzeView
+from .make_prompt import PROMPT_FACTORY_REGISTRY
 
 
 # 食事解析
@@ -95,62 +91,6 @@ async def _delete_control_message(control_message):
         await control_message.delete()
     except Exception:
         cfg.logger.exception("食事解析の操作メッセージを削除できませんでした")
-
-
-def build_analyzer_options(get_emoji: Callable[[int], Optional[discord.Emoji]]) -> list[tuple[str, int, int, Optional[discord.Emoji], discord.ButtonStyle]]:
-    """登録済みの表示情報から、表示順にDiscord用のボタン設定を作る。"""
-    # プロンプトを持たない操作ボタンは表示側で定義する。
-    # 各分析者とテスト用ボタンの表示情報は、プロンプトのデコレータで登録する。
-    button_definitions = {
-        constants.ANALYZER_ID_ALL_IDOL: AnalyzerButton(
-            "アイドル全員からランダム", row=0, order=0, primary=False,
-        ),
-        constants.ANALYZER_ID_ALL_AIRPLAY: AnalyzerButton(
-            "エアプ全員からランダム", row=2, order=7, primary=False,
-        ),
-        constants.ANALYZER_ID_CANCELLED: AnalyzerButton(
-            "キャンセル", row=4, order=14, primary=False,
-        ),
-        **ANALYZER_BUTTON_REGISTRY,
-    }
-    # 関数の定義順に依存せずorderで並べ、表示時に絵文字と色を解決する。
-    # 戻り値の各要素は（表示名、行番号、分析者ID、絵文字、ボタン色）。
-    return [
-        (
-            button.label,
-            button.row,
-            analyzer_id,
-            get_emoji(button.emoji_id) if button.emoji_id is not None else None,
-            discord.ButtonStyle.primary if button.primary else discord.ButtonStyle.secondary,
-        )
-        for analyzer_id, button in sorted(
-            button_definitions.items(), key=lambda item: item[1].order,
-        )
-    ]
-
-
-# 食事の写真を解析する関数
-def analyze_meal_images(images: list[tuple[bytes, str]], message:str, user_name:str, analyzer_id:int) -> str:
-    if not images:
-        return ""
-
-    # analyzer_idと対応するプロンプトを取得
-    # get_prompt_for_analyzer 側でユーザー名を安全に正規化するため、ここでは再正規化しない
-    prompt = get_prompt_for_analyzer(analyzer_id, user_name, message)
-    contents = [prompt]
-
-    # プロンプトに添付写真を追加
-    for image_bytes, mime_type in images:
-        contents.append(
-            gemini.types.Part.from_bytes(
-                data=image_bytes, 
-                mime_type=mime_type,
-                )
-            )
-
-    # geminiのコンフィグを設定（テキスト応答）
-    config = gemini.types.GenerateContentConfig(response_mime_type="text/plain")
-    return gemini.analyze_with_gemini(contents, config)
 
 
 __all__ = [

@@ -12,12 +12,10 @@ PromptFactory = Callable[[str, str], str]
 class AnalyzerButton:
     """Discordへの変換前のボタン表示情報。
 
-    rowは0始まりの行番号、orderは操作ボタンも含めた表示順（昇順）。
+    配置はanalyzer_options.pyのANALYZER_BUTTON_LAYOUTで管理する。
     primaryがFalseなら副操作用の色で表示する。
     """
     label: str
-    row: int
-    order: int
     emoji_id: int | None = None
     primary: bool = True
 
@@ -310,7 +308,7 @@ prompt_common_format = f"""
 # 咲季用
 @register_prompt(
     constants.ANALYZER_ID_SAKI, "idol",
-    button=AnalyzerButton("咲季", row=0, order=1, emoji_id=1525052785333239829),
+    button=AnalyzerButton("咲季", emoji_id=1525052785333239829),
 )
 def make_saki_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -348,7 +346,7 @@ def make_saki_prompt(user_name: str, message: str) -> str:
 # 咲季（エアプ）用
 @register_prompt(
     constants.ANALYZER_ID_SAKI_AIRPLAY, "airplay",
-    button=AnalyzerButton("咲季(エアプ)", row=2, order=8, emoji_id=1525052785333239829),
+    button=AnalyzerButton("咲季(エアプ)", emoji_id=1525052785333239829),
 )
 def make_saki_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -376,7 +374,7 @@ def make_saki_airplay_prompt(user_name: str, message: str) -> str:
 # 広用
 @register_prompt(
     constants.ANALYZER_ID_HIRO, "idol",
-    button=AnalyzerButton("広", row=0, order=4, emoji_id=1525055654686097569),
+    button=AnalyzerButton("広", emoji_id=1525055654686097569),
 )
 def make_hiro_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -406,7 +404,7 @@ def make_hiro_prompt(user_name: str, message: str) -> str:
 # 広(エアプ)用
 @register_prompt(
     constants.ANALYZER_ID_HIRO_AIRPLAY, "airplay",
-    button=AnalyzerButton("広(エアプ)", row=2, order=11, emoji_id=1525055654686097569),
+    button=AnalyzerButton("広(エアプ)", emoji_id=1525055654686097569),
 )
 def make_hiro_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -433,7 +431,7 @@ def make_hiro_airplay_prompt(user_name: str, message: str) -> str:
 # 莉波用
 @register_prompt(
     constants.ANALYZER_ID_RINAMI, "idol",
-    button=AnalyzerButton("莉波", row=1, order=5, emoji_id=1525055724181524610),
+    button=AnalyzerButton("莉波", emoji_id=1525055724181524610),
 )
 def make_rinami_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -460,7 +458,7 @@ def make_rinami_prompt(user_name: str, message: str) -> str:
 # 莉波(エアプ)用
 @register_prompt(
     constants.ANALYZER_ID_RINAMI_AIRPLAY, "airplay",
-    button=AnalyzerButton("莉波(エアプ)", row=3, order=12, emoji_id=1525055724181524610),
+    button=AnalyzerButton("莉波(エアプ)", emoji_id=1525055724181524610),
 )
 def make_rinami_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -485,7 +483,7 @@ def make_rinami_airplay_prompt(user_name: str, message: str) -> str:
 # 美鈴用
 @register_prompt(
     constants.ANALYZER_ID_MISUZU, "idol",
-    button=AnalyzerButton("美鈴", row=1, order=6, emoji_id=1525336748283006996),
+    button=AnalyzerButton("美鈴", emoji_id=1525336748283006996),
 )
 def make_misuzu_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -515,7 +513,7 @@ def make_misuzu_prompt(user_name: str, message: str) -> str:
 # 美鈴(エアプ)用
 @register_prompt(
     constants.ANALYZER_ID_MISUZU_AIRPLAY, "airplay",
-    button=AnalyzerButton("美鈴(エアプ)", row=3, order=13, emoji_id=1525336748283006996),
+    button=AnalyzerButton("美鈴(エアプ)", emoji_id=1525336748283006996),
 )
 def make_misuzu_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -558,7 +556,7 @@ def make_china_prompt(user_name: str, message: str) -> str:
 # 手毬用
 @register_prompt(
     constants.ANALYZER_ID_TEMARI, "idol",
-    button=AnalyzerButton("手毬", row=0, order=2, emoji_id=1531255289083334749),
+    button=AnalyzerButton("手毬", emoji_id=1531255289083334749),
 )
 def make_temari_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -619,7 +617,7 @@ def make_temari_prompt(user_name: str, message: str) -> str:
 # 手毬(エアプ)用
 @register_prompt(
     constants.ANALYZER_ID_TEMARI_AIRPLAY, "airplay",
-    button=AnalyzerButton("手毬(エアプ)", row=2, order=9, emoji_id=1531255289083334749),
+    button=AnalyzerButton("手毬(エアプ)", emoji_id=1531255289083334749),
 )
 def make_temari_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -642,7 +640,7 @@ def make_temari_airplay_prompt(user_name: str, message: str) -> str:
 # ことね用
 @register_prompt(
     constants.ANALYZER_ID_KOTONE, "idol",
-    button=AnalyzerButton("ことね", row=0, order=3, emoji_id=1529460170609004614),
+    button=AnalyzerButton("ことね", emoji_id=1529460170609004614),
 )
 def make_kotone_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -710,7 +708,7 @@ def make_kotone_prompt(user_name: str, message: str) -> str:
 # ことね(エアプ)用
 @register_prompt(
     constants.ANALYZER_ID_KOTONE_AIRPLAY, "airplay",
-    button=AnalyzerButton("ことね(エアプ)", row=2, order=10, emoji_id=1529460170609004614),
+    button=AnalyzerButton("ことね(エアプ)", emoji_id=1529460170609004614),
 )
 def make_kotone_airplay_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
@@ -733,7 +731,7 @@ def make_kotone_airplay_prompt(user_name: str, message: str) -> str:
 # モジュール読み込み時にDEBUG_MODE=1なら、プロンプトとボタンを両方登録する。
 @register_prompt(
     constants.ANALYZER_ID_TEST, "idol",
-    button=AnalyzerButton("テスト用", row=4, order=15, primary=False),
+    button=AnalyzerButton("テスト用", primary=False),
     enabled=os.getenv("DEBUG_MODE") == "1",
 )
 def make_test_prompt(user_name: str, message: str) -> str:

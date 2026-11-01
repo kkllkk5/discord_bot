@@ -280,7 +280,7 @@ def test_build_analyzer_options_preserves_layout(monkeypatch):
     import runpy
 
     load_meal_analyze()
-    actual_module = importlib.import_module('feature.meal_analyze.meal_analyze')
+    actual_module = importlib.import_module('feature.meal_analyze.analyzer_options')
     ma_constants = actual_module.constants
     characters = [
         ('SAKI', '咲季', 1525052785333239829),
@@ -293,7 +293,7 @@ def test_build_analyzer_options_preserves_layout(monkeypatch):
     for debug_mode in ('0', '1'):
         monkeypatch.setenv('DEBUG_MODE', debug_mode)
         prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/make_prompt.py'))
-        # 定義順が変わっても明示した表示順で並ぶことを確認する。
+        # 登録順が変わっても配置マップの順に並ぶことを確認する。
         registry = dict(reversed(list(prompts['ANALYZER_BUTTON_REGISTRY'].items())))
         monkeypatch.setattr(actual_module, 'ANALYZER_BUTTON_REGISTRY', registry)
         expected = []
@@ -377,3 +377,20 @@ def test_handle_meal_analyze_error_boundary(monkeypatch, failure):
         assert any(call.args == ('食事解析の処理に失敗しました',) for call in logger.exception.call_args_list)
         if failure == 'notification':
             logger.exception.assert_any_call('食事解析の失敗通知を送信できませんでした')
+
+
+def test_build_analyzer_options_uses_layout_map(monkeypatch):
+    load_meal_analyze()
+    module = importlib.import_module('feature.meal_analyze.analyzer_options')
+    monkeypatch.setattr(module, 'ANALYZER_BUTTON_LAYOUT', {
+        3: (module.constants.ANALYZER_ID_ALL_IDOL,),
+        0: (module.constants.ANALYZER_ID_ALL_AIRPLAY, module.constants.ANALYZER_ID_CANCELLED),
+    })
+
+    options = module.build_analyzer_options(lambda _: None)
+
+    assert [(row, analyzer_id) for _, row, analyzer_id, _, _ in options] == [
+        (0, module.constants.ANALYZER_ID_ALL_AIRPLAY),
+        (0, module.constants.ANALYZER_ID_CANCELLED),
+        (3, module.constants.ANALYZER_ID_ALL_IDOL),
+    ]
