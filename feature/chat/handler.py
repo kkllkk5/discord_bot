@@ -1,11 +1,13 @@
 """Botへのメンションを受け付け、分析者選択UIを介してチャット応答する。"""
 
 import asyncio
+from typing import Callable
+
 import discord
 
 import config as cfg
 from feature import constants
-from feature.meal_analyze.meal_analyze import request_analyzer_selection
+from feature.analyzer_selection import request_analyzer_selection
 from .analysis import analyze_chat_message
 
 

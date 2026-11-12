@@ -5,6 +5,7 @@ import asyncio
 import config as cfg
 
 from feature import constants
+from feature.analyzer_selection import request_analyzer_selection
 from .analysis import analyze_meal_images
 from .analyzer_options import build_analyzer_options
 from .analyze_view import AnalyzeView
@@ -50,18 +51,6 @@ async def _read_meal_images(attachments) -> list[tuple[bytes, str]]:
     return images
 
 
-async def request_analyzer_selection(message, get_emoji):
-    """共通の分析者選択メッセージを送り、後始末用メッセージとViewを返す。"""
-    analyzer_options = build_analyzer_options(get_emoji)
-    view = AnalyzeView(owner_id=message.author.id, IDOLS=analyzer_options)
-    control_message = await message.reply(
-        f"{message.author.mention} 誰に返信してもらう？",
-        view=view,
-    )
-    # 待機前に呼び出し元へ渡し、待機中のキャンセルでも削除できるようにする。
-    return control_message, view
-
-
 async def _analyze_and_reply(message, images: list[tuple[bytes, str]], analyzer_id: int):
     """同時実行数を制限して解析し、結果があれば返信する。"""
     async with cfg.meal_analyze_semaphore:
@@ -94,7 +83,6 @@ async def _delete_control_message(control_message):
 
 __all__ = [
     "handle_meal_analyze",
-    "request_analyzer_selection",
     "AnalyzeView",
     "build_analyzer_options",
     "analyze_meal_images",
