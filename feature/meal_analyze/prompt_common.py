@@ -1,46 +1,5 @@
-import re
-
-# user_nameをプロンプトインジェクションを防ぐ形に整形する
-# 具体的には，以下のように行う
-# 1. 特定の記号を除去する
-# 2. インジェクション文のパターンを削除する
-# 3.英数文字日本語一部の記号に制限する
-# 4.32文字以内に制限する
-def sanitize_user_name(user_name: str) -> str:
-    """プロンプトに埋め込むユーザー名を安全に整形する。"""
-    if user_name is None:
-        return "ユーザー"
-
-    # 特定の記号を除去する
-    cleaned = str(user_name)
-    cleaned = cleaned.replace("\r", " ").replace("\n", " ").replace("\t", " ")
-    cleaned = cleaned.replace("```", "")
-    cleaned = re.sub(r"[\x00-\x1f\x7f]", " ", cleaned)
-
-    # インジェクション文のパターンを削除する
-    for marker in [
-        r"(?i)ignore\s+all\s+previous\s+instructions",
-        r"(?i)you\s+are\s+now",
-        r"(?i)act\s+as\s+if",
-        r"(?i)new\s+instructions?",
-        r"(?i)^\s*(?:system|assistant|user|developer)\s*[:\-]",
-    ]:
-        pattern = re.compile(marker)
-        if pattern.search(cleaned):
-            cleaned = pattern.split(cleaned, maxsplit=1)[0]
-            break
-
-    cleaned = re.sub(r"[^A-Za-z0-9ぁ-んァ-ン一-龯ー_ -]", "", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    if not cleaned:
-        return "ユーザー"
-
-    # 32文字に制限する
-    return cleaned[:32]
-
-
-
-
+from feature.ai_config.characters import get_character_persona
+from feature.ai_config.prompting import compose_prompt, sanitize_user_name
 
 def make_prompt_common_strict() -> str:
     prompt_common_strict = f"""
@@ -157,11 +116,11 @@ def make_prompt_common_strict() -> str:
 
 # タスク別に差し替えるプロンプト部品
 
-def make_prompt_meal_analysis() -> str:
-    """食事画像の解析タスクに固有の指示。"""
+def make_prompt_image_task() -> str:
+    """画像が添付された場合の解析タスク。"""
     return """
         # タスク: 食事画像の解析
-        ユーザーから送られた画像を確認し、食べ物が写っている場合は内容を分析してください。
+        添付画像を確認し、食べ物が写っている場合は内容を分析してください。
 
         # 食事画像の解析条件
         - 画像に写っている食べ物の名前、カロリー、栄養素（可能な限り各栄養素の量）を推定してください。
@@ -217,11 +176,30 @@ def make_prompt_visual_identification() -> str:
     """.strip()
 
 
-def compose_prompt(*parts: str) -> str:
-    """空でないプロンプト部品を順番に連結する。"""
-    return "\n\n".join(part.strip() for part in parts if part and part.strip())
+def compose_character_prompt(
+    character_id: int,
+    user_name: str,
+    user_message: str,
+) -> str:
+    """共有キャラクター設定と食事画像用のタスク部品を組み合わせる。"""
+    return compose_prompt(
+        get_character_persona(character_id, user_name),
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(user_message),
+        make_prompt_output_format(),
+    )
 
 
+def compose_character_chat_prompt(character_id: int, user_name: str, task: str) -> str:
+    """共有キャラクター設定にチャット専用タスクを組み合わせる。"""
+    return compose_prompt(get_character_persona(character_id, user_name), task)
 
 
-__all__ = ["sanitize_user_name", "make_prompt_common_strict", "make_prompt_meal_analysis", "make_prompt_user_message", "make_prompt_output_format", "make_prompt_persona", "make_prompt_visual_identification", "compose_prompt"]
+__all__ = [
+    "sanitize_user_name", "make_prompt_common_strict", "make_prompt_image_task",
+    "compose_character_prompt",
+    "make_prompt_user_message", "make_prompt_output_format",
+    "make_prompt_persona", "make_prompt_visual_identification", "compose_prompt",
+    "compose_character_chat_prompt",
+]

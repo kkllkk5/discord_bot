@@ -14,5 +14,6 @@ SRAN_RESULT_CHANNNEL_ID = 1528012029565079623 # s乱リザルトチャンネル
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("discord.client")
 
-#食事解析の同時実行数制限
-meal_analyze_semaphore = asyncio.Semaphore(2)
+# AI機能全体の同時実行数制限（食事解析とチャットで共有）
+ai_semaphore = asyncio.Semaphore(2)
+meal_analyze_semaphore = ai_semaphore

@@ -1,14 +1,14 @@
+from feature import constants
 from feature.meal_analyze.prompt_common import (
     compose_prompt,
-    make_prompt_common_strict,
-    make_prompt_meal_analysis,
+    make_prompt_image_task,
+    make_prompt_visual_identification,
     make_prompt_user_message,
     make_prompt_output_format,
+    make_prompt_common_strict,
     make_prompt_persona,
-    make_prompt_visual_identification,
 )
 
-# 咲季用
 def make_saki_prompt(user_name: str, message: str) -> str:
     prompt_common_strict = make_prompt_common_strict()
     persona_instructions = make_prompt_persona(f"""
@@ -36,11 +36,13 @@ def make_saki_prompt(user_name: str, message: str) -> str:
         6. 【内容】画像に写っている食べ物が「アイドルの食べ物として相応しいかどうか（厳しめにお願いします）」の判定を含めてください。また,どのようにアレンジ(「食べ物を別の食べ物に置き換える」といった回答はなるべく控える)すれば「アイドルの食べ物」として相応しくなるかの例についても簡潔に厳しめに述べてください.
         ・**アイドルの食べ物か**: 
         """)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 咲季（エアプ）用
@@ -62,11 +64,13 @@ def make_saki_airplay_prompt(user_name: str, message: str) -> str:
         ・**アイドルの食べ物か**: 
         """
     persona_instructions = make_prompt_persona(saki_airplay_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 広用
@@ -90,11 +94,13 @@ def make_hiro_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(hiro_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 広(エアプ)用
@@ -115,11 +121,13 @@ def make_hiro_airplay_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(hiro_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 莉波用
@@ -140,11 +148,13 @@ def make_rinami_prompt(user_name: str, message: str) -> str:
         """
 
     persona_instructions = make_prompt_persona(rinami_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 莉波(エアプ)用
@@ -163,11 +173,13 @@ def make_rinami_airplay_prompt(user_name: str, message: str) -> str:
         """
 
     persona_instructions = make_prompt_persona(rinami_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 美鈴用
@@ -191,11 +203,13 @@ def make_misuzu_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(misuzu_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 美鈴(エアプ)用
@@ -213,11 +227,13 @@ def make_misuzu_airplay_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(misuzu_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 千奈用
@@ -234,11 +250,13 @@ def make_china_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(china_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 手毬用
@@ -293,11 +311,13 @@ def make_temari_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(temari_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # 手毬(エアプ)用
@@ -314,11 +334,13 @@ def make_temari_airplay_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(temari_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # ことね用
@@ -380,11 +402,13 @@ def make_kotone_prompt(user_name: str, message: str) -> str:
         ・**推定価格**: 
         """
     persona_instructions = make_prompt_persona(kotone_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 # ことね(エアプ)用
@@ -401,11 +425,13 @@ def make_kotone_airplay_prompt(user_name: str, message: str) -> str:
         ・**推定価格**:
         """
     persona_instructions = make_prompt_persona(kotone_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 
 
 def make_test_prompt(user_name: str, message: str) -> str:
@@ -418,9 +444,11 @@ def make_test_prompt(user_name: str, message: str) -> str:
         {prompt_common_strict}
         """
     persona_instructions = make_prompt_persona(test_prompt)
-    task_instructions = make_prompt_meal_analysis()
-    visual_instructions = make_prompt_visual_identification()
-    user_instructions = make_prompt_user_message(message)
-    output_instructions = make_prompt_output_format()
-    return compose_prompt(persona_instructions, task_instructions, visual_instructions, user_instructions, output_instructions)
+    return compose_prompt(
+        persona_instructions,
+        make_prompt_image_task(),
+        make_prompt_visual_identification(),
+        make_prompt_user_message(message),
+        make_prompt_output_format(),
+    )
 

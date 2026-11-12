@@ -10,7 +10,7 @@ from feature.meal_analyze import prompt_characters as characters
 from feature.meal_analyze.prompt_common import (
     compose_prompt,
     make_prompt_common_strict,
-    make_prompt_meal_analysis,
+    make_prompt_image_task,
     make_prompt_output_format,
     make_prompt_persona,
     make_prompt_user_message,
@@ -70,9 +70,12 @@ def get_prompt_factories_for_group(group: str) -> list[PromptFactory]:
     ]
 
 
-def get_prompt_for_analyzer(analyzer_id: int, user_name: str, message: str = "") -> str:
+def get_prompt_for_analyzer(
+    analyzer_id: int, user_name: str, message: str = ""
+) -> str:
     """登録済み解析者、または指定されたランダムグループからプロンプトを作る。"""
     safe_user_name = sanitize_user_name(user_name)
+
     entry = PROMPT_FACTORY_REGISTRY.get(analyzer_id)
     if entry is not None:
         factory, _ = entry
@@ -85,15 +88,13 @@ def get_prompt_for_analyzer(analyzer_id: int, user_name: str, message: str = "")
     if random_group is None:
         raise ValueError(f"Unknown analyzer ID: {analyzer_id}")
 
-    return random.choice(get_prompt_factories_for_group(random_group))(
-        safe_user_name, message
-    )
+    return random.choice(get_prompt_factories_for_group(random_group))(safe_user_name, message)
 
 
 def make_prompt_common_output(user_message: str) -> str:
     """互換用に食事タスクとユーザー追加メッセージをまとめる。"""
     return compose_prompt(
-        make_prompt_meal_analysis(),
+        make_prompt_image_task(),
         make_prompt_user_message(user_message),
     )
 
@@ -212,7 +213,7 @@ __all__ = [
     "PROMPT_FACTORY_REGISTRY", "sanitize_user_name", "register_prompt",
     "register_prompt_factory", "get_prompt_factories_for_group",
     "get_prompt_for_analyzer", "make_prompt_common_strict",
-    "make_prompt_common_output", "make_prompt_meal_analysis",
+    "make_prompt_common_output", "make_prompt_image_task",
     "make_prompt_user_message", "make_prompt_persona",
     "make_prompt_output_format", "make_prompt_visual_identification",
     "compose_prompt", "make_saki_prompt", "make_saki_airplay_prompt",

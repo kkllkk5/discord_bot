@@ -6,6 +6,7 @@ import feature.tech as tech  # 自作パッケージ
 from feature.bot_status.presence import set_presence
 from feature.dice_roll.commands import handle_dice
 from feature.meal_analyze.meal_analyze import handle_meal_analyze
+from feature.chat.handler import handle_chat_mention
 import feature.iidx_notion.result_analyze as result_analyze # 自作パッケージ
 from zoneinfo import ZoneInfo
 from datetime import time,datetime
@@ -61,6 +62,10 @@ async def on_ready():
 # メッセージ受信時に動作する処理
 @client.event
 async def on_message(message):
+    # ログイン前など、Bot自身のユーザー情報がない状態では処理しない。
+    if client.user is None:
+        return
+
     # メッセージ送信者がBotだった場合は無視する
     if message.author.bot:
         return
@@ -71,6 +76,11 @@ async def on_message(message):
     
     # デバッグモード（ローカル起動）の場合は，テスト用チャンネル以外のメッセージを無視する
     if (os.getenv("DEBUG_MODE") == "1") and not (message.channel.id == cfg.DEBUG_CHANNNEL_ID or message.channel.id == cfg.SRAN_RESULT_CHANNNEL_ID):
+        return
+
+    # Botへのメンションを、添付画像の有無にかかわらずテキストチャットとして扱う。
+    if client.user in message.mentions:
+        await handle_chat_mention(message, client.get_emoji)
         return
         
     # 「/iidx {レベル} {課題曲数}」と送るとiidxの課題曲をランダムで作成

@@ -22,7 +22,7 @@ async def handle_meal_analyze(message, get_emoji):
             cfg.logger.info("画像が見つかりませんでした.")
             return
 
-        control_message, view = await _request_analyzer_selection(message, get_emoji)
+        control_message, view = await request_analyzer_selection(message, get_emoji)
         await view.event.wait()
         analyzer_id = view.result
         # 選択結果がない場合とキャンセル時は解析を行わない。
@@ -50,12 +50,12 @@ async def _read_meal_images(attachments) -> list[tuple[bytes, str]]:
     return images
 
 
-async def _request_analyzer_selection(message, get_emoji):
-    """選択ボタンを送信し、後始末用のメッセージと選択待ち用のViewを返す。"""
+async def request_analyzer_selection(message, get_emoji):
+    """共通の分析者選択メッセージを送り、後始末用メッセージとViewを返す。"""
     analyzer_options = build_analyzer_options(get_emoji)
     view = AnalyzeView(owner_id=message.author.id, IDOLS=analyzer_options)
     control_message = await message.reply(
-        f"{message.author.mention} 誰に分析してもらう？",
+        f"{message.author.mention} 誰に返信してもらう？",
         view=view,
     )
     # 待機前に呼び出し元へ渡し、待機中のキャンセルでも削除できるようにする。
@@ -94,6 +94,7 @@ async def _delete_control_message(control_message):
 
 __all__ = [
     "handle_meal_analyze",
+    "request_analyzer_selection",
     "AnalyzeView",
     "build_analyzer_options",
     "analyze_meal_images",
