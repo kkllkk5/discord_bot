@@ -1,7 +1,7 @@
 """チャット用プロンプトを作り、Geminiへ問い合わせる。"""
 
 from feature import gemini
-from feature.meal_analyze.prompt_common import compose_character_chat_prompt
+from feature.ai_config.prompting import compose_character_chat_prompt
 
 
 def analyze_chat_message(message: str, user_name: str, analyzer_id: int) -> str:

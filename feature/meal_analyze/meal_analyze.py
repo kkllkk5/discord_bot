@@ -9,7 +9,7 @@ from feature.analyzer_selection import request_analyzer_selection
 from .analysis import analyze_meal_images
 from .analyzer_options import build_analyzer_options
 from .analyze_view import AnalyzeView
-from .make_prompt import PROMPT_FACTORY_REGISTRY
+from .meal_prompts import PROMPT_FACTORY_REGISTRY
 
 
 # 食事解析

@@ -17,7 +17,7 @@ def test_prompt_registration_on_load(monkeypatch, debug_mode):
         monkeypatch.delenv('DEBUG_MODE', raising=False)
     else:
         monkeypatch.setenv('DEBUG_MODE', debug_mode)
-    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/make_prompt.py'))
+    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/meal_prompts.py'))
     expected = {}
     for name in ('saki', 'hiro', 'rinami', 'misuzu', 'temari', 'kotone'):
         for suffix, group in (('', 'idol'), ('_airplay', 'airplay')):
@@ -29,7 +29,7 @@ def test_prompt_registration_on_load(monkeypatch, debug_mode):
 
 
 def test_decorator_preserves_function_and_rejects_duplicate():
-    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/make_prompt.py'))
+    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/meal_prompts.py'))
     register = module['register_prompt']
     registry = module['PROMPT_FACTORY_REGISTRY']
 
@@ -54,7 +54,7 @@ def test_decorator_preserves_function_and_rejects_duplicate():
 def test_prompt_selection_calls_only_selected_factory(monkeypatch, analyzer_id, expected_group):
     from unittest.mock import Mock
 
-    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/make_prompt.py'))
+    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/meal_prompts.py'))
     registry = module['PROMPT_FACTORY_REGISTRY']
     registry.clear()
     idol = Mock(return_value='idol prompt')
@@ -85,7 +85,7 @@ def test_prompt_selection_calls_only_selected_factory(monkeypatch, analyzer_id, 
 def test_unknown_analyzer_does_not_select_or_generate_prompt(monkeypatch):
     from unittest.mock import Mock
 
-    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/make_prompt.py'))
+    module = runpy.run_path(str(ROOT / 'feature/meal_analyze/meal_prompts.py'))
     choice = Mock()
     factory = Mock()
     module['PROMPT_FACTORY_REGISTRY'].clear()

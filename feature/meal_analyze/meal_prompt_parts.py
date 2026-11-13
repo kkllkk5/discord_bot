@@ -1,5 +1,4 @@
-from feature.ai_config.characters import get_character_persona
-from feature.ai_config.prompting import compose_prompt, sanitize_user_name
+from feature.ai_config.prompting import compose_prompt
 
 def make_prompt_common_strict() -> str:
     prompt_common_strict = f"""
@@ -176,30 +175,8 @@ def make_prompt_visual_identification() -> str:
     """.strip()
 
 
-def compose_character_prompt(
-    character_id: int,
-    user_name: str,
-    user_message: str,
-) -> str:
-    """共有キャラクター設定と食事画像用のタスク部品を組み合わせる。"""
-    return compose_prompt(
-        get_character_persona(character_id, user_name),
-        make_prompt_image_task(),
-        make_prompt_visual_identification(),
-        make_prompt_user_message(user_message),
-        make_prompt_output_format(),
-    )
-
-
-def compose_character_chat_prompt(character_id: int, user_name: str, task: str) -> str:
-    """共有キャラクター設定にチャット専用タスクを組み合わせる。"""
-    return compose_prompt(get_character_persona(character_id, user_name), task)
-
-
 __all__ = [
-    "sanitize_user_name", "make_prompt_common_strict", "make_prompt_image_task",
-    "compose_character_prompt",
+    "make_prompt_common_strict", "make_prompt_image_task",
     "make_prompt_user_message", "make_prompt_output_format",
     "make_prompt_persona", "make_prompt_visual_identification", "compose_prompt",
-    "compose_character_chat_prompt",
 ]

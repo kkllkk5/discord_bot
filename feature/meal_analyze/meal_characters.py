@@ -1,5 +1,5 @@
 from feature import constants
-from feature.meal_analyze.prompt_common import (
+from feature.meal_analyze.meal_prompt_parts import (
     compose_prompt,
     make_prompt_image_task,
     make_prompt_visual_identification,

@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from typing import Callable
 
 from feature import constants
-from feature.meal_analyze import prompt_characters as characters
-from feature.meal_analyze.prompt_common import (
+from feature.ai_config.prompting import sanitize_user_name
+from feature.meal_analyze import meal_characters as characters
+from feature.meal_analyze.meal_prompt_parts import (
     compose_prompt,
     make_prompt_common_strict,
     make_prompt_image_task,
@@ -15,7 +16,6 @@ from feature.meal_analyze.prompt_common import (
     make_prompt_persona,
     make_prompt_user_message,
     make_prompt_visual_identification,
-    sanitize_user_name,
 )
 
 PromptFactory = Callable[[str, str], str]

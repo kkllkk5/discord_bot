@@ -33,3 +33,11 @@ def sanitize_user_name(user_name: str | None) -> str:
 def compose_prompt(*parts: str) -> str:
     """空でないプロンプト部品を順番に連結する。"""
     return "\n\n".join(part.strip() for part in parts if part and part.strip())
+
+
+def compose_character_chat_prompt(character_id: int, user_name: str, task: str) -> str:
+    """共有キャラクター設定に、機能側で用意したチャットタスクを組み合わせる。"""
+    # characters.py はこのモジュールの sanitize_user_name を使うため、循環importを避けて遅延importする。
+    from .characters import get_character_persona
+
+    return compose_prompt(get_character_persona(character_id, user_name), task)

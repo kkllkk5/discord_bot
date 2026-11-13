@@ -1,7 +1,7 @@
 """食事画像とプロンプトを組み立て、Geminiで解析する。"""
 
 from feature import gemini
-from .make_prompt import get_prompt_for_analyzer
+from .meal_prompts import get_prompt_for_analyzer
 
 
 # 食事の写真を解析する関数

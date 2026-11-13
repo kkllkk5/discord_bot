@@ -92,7 +92,7 @@ def load_meal_analyze():
 
 
 def test_prompt_builder_module_exposes_factory_functions():
-    mp = importlib.import_module('feature.meal_analyze.make_prompt')
+    mp = importlib.import_module('feature.meal_analyze.meal_prompts')
 
     assert hasattr(mp, 'sanitize_user_name')
     assert hasattr(mp, 'make_prompt_common_output')
@@ -292,7 +292,7 @@ def test_build_analyzer_options_preserves_layout(monkeypatch):
     ]
     for debug_mode in ('0', '1'):
         monkeypatch.setenv('DEBUG_MODE', debug_mode)
-        prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/make_prompt.py'))
+        prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/meal_prompts.py'))
         # 登録順が変わっても配置マップの順に並ぶことを確認する。
         registry = dict(reversed(list(prompts['ANALYZER_BUTTON_REGISTRY'].items())))
         monkeypatch.setattr(actual_module, 'ANALYZER_BUTTON_REGISTRY', registry)
