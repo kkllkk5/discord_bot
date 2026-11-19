@@ -78,7 +78,7 @@ async def on_message(message):
     if (os.getenv("DEBUG_MODE") == "1") and not (message.channel.id == cfg.DEBUG_CHANNNEL_ID or message.channel.id == cfg.SRAN_RESULT_CHANNNEL_ID):
         return
 
-    # Botへのメンションを、添付画像の有無にかかわらずテキストチャットとして扱う。
+    # Botへのメンションを、botへのチャットとして扱う。
     if client.user in message.mentions:
         await handle_chat_mention(message, client.get_emoji)
         return

@@ -18,6 +18,9 @@ async def handle_chat_mention(
     """メンションを受け、キャラ選択から返信までのDiscord処理を調整する。"""
     control_message = None
     try:
+        # 添付ファイルのうち画像だけを読み、会話テキストの処理へ渡す。
+        images = await _read_chat_images(message.attachments)
+
         # 既存の食事解析と同じ選択肢・Viewを使い、UIとチャット処理を共通化する。
         control_message, view = await request_analyzer_selection(message, get_emoji)
 
@@ -30,7 +33,7 @@ async def handle_chat_mention(
             return
 
         # 同時実行枠を食事解析と共有し、同期的なGemini SDK呼び出しは別スレッドで行う。
-        response = await _generate_response(message, analyzer_id)
+        response = await _generate_response(message, images, analyzer_id)
         if response:
             await message.reply(response)
     except Exception:
@@ -42,7 +45,22 @@ async def handle_chat_mention(
             await _delete_control_message(control_message)
 
 
-async def _generate_response(message: discord.Message, analyzer_id: int) -> str:
+async def _read_chat_images(attachments) -> list[tuple[bytes, str]]:
+    """メンションメッセージの添付から画像だけを読み込む。"""
+    images = []
+    for attachment in attachments:
+        mime_type = attachment.content_type
+        if not mime_type or not mime_type.startswith("image/"):
+            continue
+        images.append((await attachment.read(), mime_type))
+    return images
+
+
+async def _generate_response(
+    message: discord.Message,
+    images: list[tuple[bytes, str]],
+    analyzer_id: int,
+) -> str:
     """共有セマフォを取得し、チャット解析をワーカースレッドで実行する。"""
     async with cfg.ai_semaphore:
         return await asyncio.to_thread(
@@ -50,6 +68,7 @@ async def _generate_response(message: discord.Message, analyzer_id: int) -> str:
             message.content,
             message.author.display_name,
             analyzer_id,
+            images,
         )
 
 
