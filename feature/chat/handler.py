@@ -7,8 +7,9 @@ import discord
 
 import config as cfg
 from feature import constants
+from feature.discord_utils import split_message
 from feature.analyzer_selection import request_analyzer_selection
-from .analysis import analyze_chat_message
+from .analysis import generate_chat_response
 
 
 async def handle_chat_mention(
@@ -35,7 +36,10 @@ async def handle_chat_mention(
         # 同時実行枠を食事解析と共有し、同期的なGemini SDK呼び出しは別スレッドで行う。
         response = await _generate_response(message, images, analyzer_id)
         if response:
-            await message.reply(response)
+            chunks = split_message(response)
+            await message.reply(chunks[0])
+            for chunk in chunks[1:]:
+                await message.channel.send(chunk)
     except Exception:
         # 失敗通知の送信失敗も個別に記録し、元の処理例外を隠さない。
         cfg.logger.exception("チャット返信の処理に失敗しました")
@@ -64,7 +68,7 @@ async def _generate_response(
     """共有セマフォを取得し、チャット解析をワーカースレッドで実行する。"""
     async with cfg.ai_semaphore:
         return await asyncio.to_thread(
-            analyze_chat_message,
+            generate_chat_response,
             message.content,
             message.author.display_name,
             analyzer_id,

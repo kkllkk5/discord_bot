@@ -4,7 +4,7 @@ from feature import gemini
 from feature.ai_config.prompting import compose_character_chat_prompt
 
 
-def analyze_chat_message(
+def generate_chat_response(
     message: str,
     user_name: str,
     analyzer_id: int,
@@ -38,4 +38,4 @@ def analyze_chat_message(
     return gemini.analyze_with_gemini(contents, config)
 
 
-__all__ = ["analyze_chat_message"]
+__all__ = ["generate_chat_response"]

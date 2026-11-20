@@ -1,6 +1,10 @@
 """複数のAI機能で共有するプロンプトユーティリティ。"""
 
+import random
 import re
+
+from feature import constants
+from . import characters
 
 
 def sanitize_user_name(user_name: str | None) -> str:
@@ -37,7 +41,8 @@ def compose_prompt(*parts: str) -> str:
 
 def compose_character_chat_prompt(character_id: int, user_name: str, task: str) -> str:
     """共有キャラクター設定に、機能側で用意したチャットタスクを組み合わせる。"""
-    # characters.py はこのモジュールの sanitize_user_name を使うため、循環importを避けて遅延importする。
-    from .characters import get_character_persona
-
-    return compose_prompt(get_character_persona(character_id, user_name), task)
+    if character_id == constants.ANALYZER_ID_ALL_IDOL:
+        character_id = random.choice(characters.get_character_ids_for_group("idol"))
+    elif character_id == constants.ANALYZER_ID_ALL_AIRPLAY:
+        character_id = random.choice(characters.get_character_ids_for_group("airplay"))
+    return compose_prompt(characters.get_character_persona(character_id, user_name), task)
