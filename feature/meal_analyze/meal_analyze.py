@@ -5,10 +5,11 @@ import asyncio
 import config as cfg
 
 from feature import constants
+from feature.analyzer_selection import request_analyzer_selection
 from .analysis import analyze_meal_images
 from .analyzer_options import build_analyzer_options
 from .analyze_view import AnalyzeView
-from .make_prompt import PROMPT_FACTORY_REGISTRY
+from .meal_prompts import PROMPT_FACTORY_REGISTRY
 
 
 # 食事解析
@@ -22,7 +23,7 @@ async def handle_meal_analyze(message, get_emoji):
             cfg.logger.info("画像が見つかりませんでした.")
             return
 
-        control_message, view = await _request_analyzer_selection(message, get_emoji)
+        control_message, view = await request_analyzer_selection(message, get_emoji)
         await view.event.wait()
         analyzer_id = view.result
         # 選択結果がない場合とキャンセル時は解析を行わない。
@@ -50,18 +51,6 @@ async def _read_meal_images(attachments) -> list[tuple[bytes, str]]:
     return images
 
 
-async def _request_analyzer_selection(message, get_emoji):
-    """選択ボタンを送信し、後始末用のメッセージと選択待ち用のViewを返す。"""
-    analyzer_options = build_analyzer_options(get_emoji)
-    view = AnalyzeView(owner_id=message.author.id, IDOLS=analyzer_options)
-    control_message = await message.reply(
-        f"{message.author.mention} 誰に分析してもらう？",
-        view=view,
-    )
-    # 待機前に呼び出し元へ渡し、待機中のキャンセルでも削除できるようにする。
-    return control_message, view
-
-
 async def _analyze_and_reply(message, images: list[tuple[bytes, str]], analyzer_id: int):
     """同時実行数を制限して解析し、結果があれば返信する。"""
     async with cfg.meal_analyze_semaphore:
@@ -75,7 +64,6 @@ async def _analyze_and_reply(message, images: list[tuple[bytes, str]], analyzer_
     if response_text is None or response_text == "":
         return
     await message.reply(response_text)
-
 
 async def _notify_meal_analyze_failure(message):
     """解析失敗を通知し、通知自体の失敗はログに残す。"""

@@ -5,7 +5,7 @@ from typing import Callable, Optional
 import discord
 
 from feature import constants
-from .make_prompt import ANALYZER_BUTTON_REGISTRY, AnalyzerButton
+from .meal_prompts import ANALYZER_BUTTON_REGISTRY, AnalyzerButton
 
 
 # ボタン配置はここだけで管理する。キーは0始まりの行番号、各行のIDは左から順。

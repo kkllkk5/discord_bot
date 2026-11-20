@@ -1,7 +1,7 @@
 """食事画像とプロンプトを組み立て、Geminiで解析する。"""
 
 from feature import gemini
-from .make_prompt import get_prompt_for_analyzer
+from .meal_prompts import get_prompt_for_analyzer
 
 
 # 食事の写真を解析する関数
@@ -20,6 +20,9 @@ def analyze_meal_images(images: list[tuple[bytes, str]], message: str, user_name
             gemini.types.Part.from_bytes(
                 data=image_bytes,
                 mime_type=mime_type,
+                media_resolution={
+                    "level": "media_resolution_medium",
+                },
             )
         )
 

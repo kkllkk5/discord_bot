@@ -92,7 +92,7 @@ def load_meal_analyze():
 
 
 def test_prompt_builder_module_exposes_factory_functions():
-    mp = importlib.import_module('feature.meal_analyze.make_prompt')
+    mp = importlib.import_module('feature.meal_analyze.meal_prompts')
 
     assert hasattr(mp, 'sanitize_user_name')
     assert hasattr(mp, 'make_prompt_common_output')
@@ -159,6 +159,32 @@ def test_sanitize_user_name_removes_injection_markers():
     assert 'pirate' not in cleaned.lower()
 
 
+def test_prompt_rules_are_split_between_character_and_meal_task():
+    ma = load_meal_analyze()
+    from feature import constants
+    from feature.ai_config.characters import get_character_persona
+    from feature.meal_analyze import meal_characters
+
+    saki_prompt = meal_characters.make_saki_prompt("tester", "")
+    saki_persona = get_character_persona(constants.ANALYZER_ID_SAKI, "tester")
+    kotone_persona = get_character_persona(constants.ANALYZER_ID_KOTONE, "tester")
+    kotone_meal_prompt = meal_characters.make_kotone_prompt("tester", "")
+    rinami_persona = get_character_persona(constants.ANALYZER_ID_RINAMI, "tester")
+    misuzu_persona = get_character_persona(constants.ANALYZER_ID_MISUZU, "tester")
+
+    assert "正確に分析してください" in saki_prompt
+    assert "時間帯や写真に写っている場所は考慮しない" in saki_prompt
+    assert "アイドルの食べ物か" in saki_prompt
+    assert saki_prompt.index("・**栄養素**:") < saki_prompt.index("・**アイドルの食べ物か**:")
+    assert "最後に、食事全体についての総評を独立した段落で簡潔にまとめてください" in saki_prompt
+    assert "寿司以外の話題では寿司について触れない" in rinami_persona
+    assert "ブラコンです" in rinami_persona
+    assert "ラーメン以外の話題では、まりちゃんに触れない" in misuzu_persona
+    assert "まりちゃんを思い出す" in misuzu_persona
+    assert "推定価格" not in kotone_persona
+    assert "推定価格" in kotone_meal_prompt
+
+
 def test_analyze_meal_images_empty():
     ma = load_meal_analyze()
     assert ma.analyze_meal_images([], '', 'user', 0) == ''
@@ -209,7 +235,9 @@ def test_handle_meal_analyze_skips_analysis_when_cancelled(monkeypatch):
         analyze_called = True
         return "OK"
 
-    monkeypatch.setattr(actual_module, "AnalyzeView", FakeView)
+    # 選択Viewは共有セレクタ側で生成されるため、そちらを置き換える。
+    selection_module = importlib.import_module("feature.analyzer_selection")
+    monkeypatch.setattr(selection_module, "AnalyzeView", FakeView)
     monkeypatch.setattr(
         actual_module,
         "analyze_meal_images",
@@ -225,7 +253,7 @@ def test_handle_meal_analyze_skips_analysis_when_cancelled(monkeypatch):
         )
 
         assert len(message.replies) == 1
-        assert message.replies[0].endswith("誰に分析してもらう？")
+        assert message.replies[0].endswith("誰に返信してもらう？")
         assert analyze_called is False
         assert message.deleted is True
 
@@ -259,20 +287,21 @@ def test_handle_meal_analyze_calls_local_analyze_function():
 
     monkeypatch = None
     actual_module = importlib.import_module('feature.meal_analyze.meal_analyze')
-    original_view = actual_module.AnalyzeView
-    actual_module.AnalyzeView = FakeView
+    selection_module = importlib.import_module('feature.analyzer_selection')
+    original_view = selection_module.AnalyzeView
+    selection_module.AnalyzeView = FakeView
     try:
         actual_module.analyze_meal_images = lambda images, text, user_name, analyzer_id: 'OK'
 
         async def run():
             message = DummyMessage()
             await actual_module.handle_meal_analyze(message, lambda _: None)
-            assert message.replies[0].endswith('誰に分析してもらう？')
+            assert message.replies[0].endswith('誰に返信してもらう？')
             assert message.replies[-1] == 'OK'
 
         asyncio.run(run())
     finally:
-        actual_module.AnalyzeView = original_view
+        selection_module.AnalyzeView = original_view
         actual_module.analyze_meal_images = load_meal_analyze().analyze_meal_images
 
 
@@ -292,7 +321,7 @@ def test_build_analyzer_options_preserves_layout(monkeypatch):
     ]
     for debug_mode in ('0', '1'):
         monkeypatch.setenv('DEBUG_MODE', debug_mode)
-        prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/make_prompt.py'))
+        prompts = runpy.run_path(os.path.join(ROOT, 'feature/meal_analyze/meal_prompts.py'))
         # 登録順が変わっても配置マップの順に並ぶことを確認する。
         registry = dict(reversed(list(prompts['ANALYZER_BUTTON_REGISTRY'].items())))
         monkeypatch.setattr(actual_module, 'ANALYZER_BUTTON_REGISTRY', registry)
@@ -340,7 +369,8 @@ def test_handle_meal_analyze_error_boundary(monkeypatch, failure):
         event.set()
         return types.SimpleNamespace(event=event, result=module.constants.ANALYZER_ID_SAKI)
 
-    monkeypatch.setattr(module, 'AnalyzeView', make_view)
+    selection_module = importlib.import_module('feature.analyzer_selection')
+    monkeypatch.setattr(selection_module, 'AnalyzeView', make_view)
     analyze = Mock(return_value='OK')
     monkeypatch.setattr(module, 'analyze_meal_images', analyze)
     if failure == 'attachment':

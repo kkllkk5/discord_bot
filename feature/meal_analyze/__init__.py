@@ -2,7 +2,7 @@ import discord
 
 from feature import constants, gemini
 from .analyze_view import AnalyzeView
-from .make_prompt import (
+from .meal_prompts import (
     PROMPT_FACTORY_REGISTRY,
     get_prompt_factories_for_group,
     get_prompt_for_analyzer,

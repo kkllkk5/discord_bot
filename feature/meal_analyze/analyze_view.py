@@ -7,6 +7,8 @@ from feature import constants
 
 
 class AnalyzeView(discord.ui.View):
+    PROCESSING_CONTENT = "処理中..."
+
     def __init__(self, owner_id, IDOLS):
         super().__init__(timeout=300)
         self.result = None
@@ -34,7 +36,10 @@ class AnalyzeView(discord.ui.View):
                     if isinstance(item, discord.ui.Button):
                         item.disabled = True
 
-                await interaction.response.edit_message(content="解析中...", view=self)
+                await interaction.response.edit_message(
+                    content=self.PROCESSING_CONTENT,
+                    view=self,
+                )
 
                 # 待機している処理を再開
                 self.event.set()
