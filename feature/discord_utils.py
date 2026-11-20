@@ -1,4 +1,4 @@
-"""Discordの共通メッセージ処理。"""
+"""Discordのメッセージ本文に関する共通処理。"""
 
 MAX_MESSAGE_LENGTH = 2000
 
@@ -13,9 +13,9 @@ def split_message(text: str, max_length: int = MAX_MESSAGE_LENGTH) -> list[str]:
     chunks = []
     remaining = text
     while len(remaining) > max_length:
-        split_at = remaining.rfind("\n", 0, max_length + 1)
+        split_at = remaining.rfind("\n", 0, max_length)
         if split_at <= 0:
-            split_at = remaining.rfind(" ", 0, max_length + 1)
+            split_at = remaining.rfind(" ", 0, max_length)
         if split_at <= 0:
             split_at = max_length
         else:
