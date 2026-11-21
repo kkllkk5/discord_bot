@@ -45,4 +45,19 @@ def compose_character_chat_prompt(character_id: int, user_name: str, task: str) 
         character_id = random.choice(characters.get_character_ids_for_group("idol"))
     elif character_id == constants.ANALYZER_ID_ALL_AIRPLAY:
         character_id = random.choice(characters.get_character_ids_for_group("airplay"))
-    return compose_prompt(characters.get_character_persona(character_id, user_name), task)
+    safe_user_name = sanitize_user_name(user_name)
+    name_rule = f"""
+# 最優先ルール: ユーザー名の表記を厳守
+ユーザーの名前は次の文字列です。
+<user_name>{safe_user_name}</user_name>
+
+ユーザーに呼びかけるときは、上の名前を一字一句そのまま使ってください。
+英字の大文字・小文字を含め、綴りを絶対に変更しないでください。カタカナ・ひらがな・漢字への翻字、翻訳、読み仮名への置き換え、短縮、別名化は禁止です。
+名前に敬称や語尾を付ける場合も、元の名前の綴りはそのまま残してください。
+他のキャラクター設定や自然な会話の指示より、この表記ルールを優先してください。
+    """.strip()
+    return compose_prompt(
+        characters.get_character_persona(character_id, safe_user_name),
+        task,
+        name_rule,
+    )

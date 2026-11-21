@@ -79,7 +79,7 @@ async def _generate_response(
 async def _notify_failure(message: discord.Message) -> None:
     """チャット失敗を利用者へ通知する。通知に失敗した場合はログへ残す。"""
     try:
-        await message.reply("返信の生成に失敗しました。時間をおいてもう一度試してください。")
+        await message.reply("エラーが発生したわ！時間をおいてもう一度試してね！")
     except Exception:
         cfg.logger.exception("チャット返信の失敗通知を送信できませんでした")
 
